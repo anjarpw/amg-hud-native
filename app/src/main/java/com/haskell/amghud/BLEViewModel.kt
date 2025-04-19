@@ -16,6 +16,8 @@ data class BLEState(
     val cumulatedPower: Float = 0.0f,
     val mode: GearMode = GearMode.P,
     val setupStatus: String = "",
+    val leftMotor: Float = 0.0f,
+    val rightMotor: Float = 0.0f
 )
 sealed class BLEIntent {
     data class UpdateMessage(val key: String, val value: String) : BLEIntent()
@@ -78,15 +80,20 @@ class BLEViewModel : ViewModel() {
                     updatedMap[intent.key] = intent.value
                     var cumulatedPower = _state.value.cumulatedPower
                     var mode = _state.value.mode
+                    var leftMotor = _state.value.leftMotor
+                    var rightMotor = _state.value.rightMotor
                     when(intent.key){
                         "CUMULATED_POWER" -> cumulatedPower = intent.value.toFloat()
                         "MODE" -> mode = GearMode.fromString(intent.value) ?: GearMode.P
-
+                        "LEFT_MOTOR" -> leftMotor = intent.value.toFloat()
+                        "RIGHT_MOTOR" -> rightMotor = intent.value.toFloat()
                     }
                     _state.value = _state.value.copy(
                         scanResults = updatedMap,
                         cumulatedPower = cumulatedPower,
-                        mode = mode
+                        mode = mode,
+                        leftMotor = leftMotor,
+                        rightMotor = rightMotor
                     )
                 }
             }
