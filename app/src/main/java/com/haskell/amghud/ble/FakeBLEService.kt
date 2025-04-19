@@ -13,7 +13,6 @@ class FakeBLEService: Service(), BLEServiceInterface {
     private var isConnected = false
     private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
-
     inner class LocalBinder : Binder(), ILocalBinder<FakeBLEService> {
         override fun getService(): FakeBLEService = this@FakeBLEService
     }
