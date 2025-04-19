@@ -4,7 +4,6 @@ import android.app.Service
 import android.content.Intent
 import android.os.Binder
 import android.os.IBinder
-import android.view.Display.Mode
 import com.haskell.amghud.GearMode
 import com.haskell.amghud.ILocalBinder
 import kotlinx.coroutines.*
@@ -27,20 +26,20 @@ class FakeBLEService: Service(), BLEServiceInterface {
         return START_REDELIVER_INTENT
     }
 
-    var cumulatedPowerCounter = 1
-    var modeCounter = 0
-    val modeList: List<GearMode> = listOf(GearMode.T, GearMode.P, GearMode.D, GearMode.S, GearMode.S_PLUS, GearMode.S, GearMode.D, GearMode.P )
+    private var cumulatedPowerCounter = 1
+    private var modeCounter = 0
+    private val modeList: List<GearMode> = listOf(GearMode.T, GearMode.P, GearMode.D, GearMode.S, GearMode.S_PLUS, GearMode.S, GearMode.D, GearMode.P )
     override fun onCreate() {
         serviceScope.launch {
             while (true) {
                 if(isConnected){
                     val balanceLeft: Float = (2.0f*Math.random()).toFloat()-1.0f
                     val balanceRight: Float = (2.0f*Math.random()).toFloat()-1.0f
-                    val cumulatedPower = cumulatedPowerCounter.toFloat()/10.0;
+                    val cumulatedPower = cumulatedPowerCounter.toFloat()/10.0
                     sendBroadcast(Intent(BLEConstants.MESSAGE_RECEIVED).putExtra("MESSAGE",
                         "CUMULATED_POWER=$cumulatedPower"
                     ))
-                    cumulatedPowerCounter = (cumulatedPowerCounter + 1) % 11;
+                    cumulatedPowerCounter = (cumulatedPowerCounter + 1) % 11
                     sendBroadcast(Intent(BLEConstants.MESSAGE_RECEIVED).putExtra("MESSAGE", "RIGHT_MOTOR="+(255*cumulatedPower*balanceLeft)))
                     sendBroadcast(Intent(BLEConstants.MESSAGE_RECEIVED).putExtra("MESSAGE", "LEFT_MOTOR="+(255*cumulatedPower*balanceRight)))
                 }
@@ -52,8 +51,10 @@ class FakeBLEService: Service(), BLEServiceInterface {
 
                 if(isConnected){
                     val mode = modeList[modeCounter].stringAlias
-                    sendBroadcast(Intent(BLEConstants.MESSAGE_RECEIVED).putExtra("MESSAGE", "MODE="+mode))
-                    modeCounter = (modeCounter + 1) % (modeList.size);
+                    sendBroadcast(Intent(BLEConstants.MESSAGE_RECEIVED).putExtra("MESSAGE",
+                        "MODE=$mode"
+                    ))
+                    modeCounter = (modeCounter + 1) % (modeList.size)
                 }
                 delay(5000) // 500 milliseconds
             }

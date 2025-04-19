@@ -12,7 +12,7 @@ enum class GearMode(val stringAlias: String) {
 
     companion object {
         fun fromString(alias: String): GearMode? {
-            return values().find { it.stringAlias == alias }
+            return entries.find { it.stringAlias == alias }
         }
     }
 }

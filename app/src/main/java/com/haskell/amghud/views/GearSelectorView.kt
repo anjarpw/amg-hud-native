@@ -1,6 +1,5 @@
 package com.haskell.amghud.views
 
-import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
@@ -11,6 +10,7 @@ import android.util.AttributeSet
 import android.view.View
 import com.haskell.amghud.GearMode
 import com.haskell.amghud.TransitioningValue
+import kotlin.math.abs
 
 
 val GearModes: Array<GearMode> = arrayOf(GearMode.T, GearMode.P, GearMode.R, GearMode.D, GearMode.S, GearMode.S_PLUS)
@@ -22,7 +22,7 @@ class GearSelectorView(context: Context, attrs: AttributeSet?) : View(context, a
     init {
         try {
             typeface = Typeface.createFromAsset(context.assets, "Exo-BoldItalic.ttf") // Replace with your font file
-            typeface = Typeface.create(typeface, Typeface.ITALIC);
+            typeface = Typeface.create(typeface, Typeface.ITALIC)
         } catch (e: Exception) {
             e.printStackTrace()
             typeface = Typeface.DEFAULT // Use default font if loading fails.
@@ -41,7 +41,7 @@ class GearSelectorView(context: Context, attrs: AttributeSet?) : View(context, a
     fun setGearMode(value: GearMode){
         val index = GearModes.indexOf(value)
         transitioningGearSelectorIndex.resetTarget(index.toFloat()) { prevTarget ->
-            Math.abs(prevTarget-index) > transitioningGearSelectorIndex.tolerance
+            abs(prevTarget-index) > transitioningGearSelectorIndex.tolerance
         }
         checkToInvalidate()
     }
@@ -60,18 +60,18 @@ class GearSelectorView(context: Context, attrs: AttributeSet?) : View(context, a
         setMeasuredDimension(resizedWidth.toInt(), resources.displayMetrics.heightPixels)
     }
 
-    @SuppressLint("DrawAllocation")
+    private val textPaint = Paint()
+    private val textBound = Rect()
+
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
-        transitioningGearSelectorIndex.update(0.5f)
-        val textPaint = Paint()
+        transitioningGearSelectorIndex.update(0.1f)
         textPaint.typeface = typeface
         textPaint.setShadowLayer(5f, 1f, 1f, Color.BLACK) // shadow radius, dx, dy, shadow color
         textPaint.color = Color.WHITE
 
-        val bounds = Rect()
         val h = height
-        val fontSize = h/18;
+        val fontSize = h/18
         val gapSize = fontSize*1.1f
         val top = (height-gapSize*6f)/2f
         for ((index, gearMode) in GearModes.withIndex()) {
@@ -80,18 +80,18 @@ class GearSelectorView(context: Context, attrs: AttributeSet?) : View(context, a
 
             textPaint.textSize = (intensity*0.4f + 0.6f)*fontSize
             textPaint.alpha = 255-((1f-intensity)*128).toInt()
-            textPaint.getTextBounds(text, 0, text.length, bounds)
+            textPaint.getTextBounds(text, 0, text.length, textBound)
 
             canvas.drawText(text,
                 width*0.5f,
-                index*gapSize + top + bounds.height()*0.5f,
+                index*gapSize + top + textBound.height()*0.5f,
                 textPaint)
         }
         checkToInvalidate()
     }
 
     private fun computeActiveIntensity(index: Int): Float{
-        var intensity = 1f-Math.abs(index-transitioningGearSelectorIndex.current)
+        var intensity = 1f-abs(index-transitioningGearSelectorIndex.current)
         if(intensity<0){
             intensity = 0f
         }

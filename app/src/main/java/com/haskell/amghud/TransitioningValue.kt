@@ -1,7 +1,7 @@
 package com.haskell.amghud
 
 abstract class TransitioningValue<T>(
-    var initialValue: T,
+    initialValue: T,
     var tolerance: Float = 0.01f
 ) {
     var progress: Float = 0f

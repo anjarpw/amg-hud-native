@@ -68,20 +68,20 @@ class MainActivity : AppCompatActivity() {
             startActivity(intent)
         }
         lifecycleScope.launch {
-            bleViewModel.state.collectLatest { it ->
-                setupStatusTextView?.text = it.setupStatus
-                circularGaugeView?.setGearMode(it.mode)
-                circularGaugeView?.setCumulatedPower(it.cumulatedPower)
-                tractionView?.setLeftMotor(it.leftMotor)
-                tractionView?.setRightMotor(it.rightMotor)
-                gearSelectorView?.setGearMode(it.mode)
+            bleViewModel.state.collectLatest {
+                setupStatusTextView.text = it.setupStatus
+                circularGaugeView.setGearMode(it.mode)
+                circularGaugeView.setCumulatedPower(it.cumulatedPower)
+                tractionView.setLeftMotor(it.leftMotor)
+                tractionView.setRightMotor(it.rightMotor)
+                gearSelectorView.setGearMode(it.mode)
             }
         }
-        BLEPermissionHandler.ensureNecessaryPermissions(this, { permissions ->
+        BLEPermissionHandler.ensureNecessaryPermissions(this) { permissions ->
             if (permissions.any { !it.value }) {
                 return@ensureNecessaryPermissions
             }
-            if(isUsingFakeBLE){
+            if (isUsingFakeBLE) {
                 val fakeServiceConnection = GenericServiceConnection(
                     this,
                     FakeBLEService::class.java,
@@ -89,12 +89,13 @@ class MainActivity : AppCompatActivity() {
                         override fun onServiceConnected(service: FakeBLEService?) {
                             bleService = service
                         }
+
                         override fun onServiceDisconnected() {
                         }
                     }
                 )
                 fakeServiceConnection.bindService()
-            }else{
+            } else {
                 val serviceConnection = GenericServiceConnection(
                     this,
                     BLEService::class.java,
@@ -109,7 +110,7 @@ class MainActivity : AppCompatActivity() {
                 )
                 serviceConnection.bindService()
             }
-        })
+        }
 
 
     }

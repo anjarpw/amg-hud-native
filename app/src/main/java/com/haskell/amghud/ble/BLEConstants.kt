@@ -19,10 +19,6 @@ inline fun <reified T : Enum<T>> Intent.getEnumExtra(key: String): T? {
 }
 
 object BLEConstants {
-
-    const val EXTRA_DEVICE_ADDRESS = "DEVICE_ADDRESS"
-    const val EXTRA_MESSAGE = "MESSAGE"
-    const val EXTRA_ERROR_CODE = "ERROR_CODE"
     const val MESSAGE_RECEIVED = "MESSAGE_RECEIVED"
     const val SETUP_STATUS_CHANGED = "SETUP_STATUS_CHANGED"
 }

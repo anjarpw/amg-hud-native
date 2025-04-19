@@ -49,7 +49,7 @@ object BLEServiceManager {
     }
 
     fun getBleService(): BLEService? {
-        return bleService;
+        return bleService
     }
 
     fun isServiceBound(): Boolean {

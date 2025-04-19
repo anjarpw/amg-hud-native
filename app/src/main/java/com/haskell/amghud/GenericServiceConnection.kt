@@ -9,25 +9,19 @@ import android.os.Binder
 import android.os.IBinder
 
 
+@Suppress("UNCHECKED_CAST")
 class GenericServiceConnection<T : Service?>(
     private val context: Context,
     private val serviceClass: Class<T>,
-    listener: ServiceConnectionListener<T?>
+    private val listener: ServiceConnectionListener<T?>
 ) :
     ServiceConnection {
-    var service: T? = null
-        private set
-    var isBound: Boolean = false
-        private set
-    private val listener: ServiceConnectionListener<T?>
+    private var service: T? = null
+    private var isBound: Boolean = false
 
     interface ServiceConnectionListener<T> {
         fun onServiceConnected(service: T)
         fun onServiceDisconnected()
-    }
-
-    init {
-        this.listener = listener
     }
 
     fun bindService() {

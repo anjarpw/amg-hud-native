@@ -1,6 +1,5 @@
 package com.haskell.amghud.views
 
-import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -18,6 +17,7 @@ import android.util.AttributeSet
 import android.view.View
 import com.haskell.amghud.R
 import com.haskell.amghud.TransitioningValue
+import kotlin.math.abs
 
 class TractionView(context: Context, attrs: AttributeSet?) : View(context, attrs) {
     private val camera: Camera = Camera()
@@ -67,13 +67,13 @@ class TractionView(context: Context, attrs: AttributeSet?) : View(context, attrs
 
     fun setLeftMotor(value: Float){
         transitioningLeftMotor.resetTarget(value) { prevTarget ->
-            Math.abs(prevTarget-value) > transitioningLeftMotor.tolerance
+            abs(prevTarget-value) > transitioningLeftMotor.tolerance
         }
         checkToInvalidate()
     }
     fun setRightMotor(value: Float){
         transitioningRightMotor.resetTarget(value) { prevTarget ->
-            Math.abs(prevTarget-value) > transitioningRightMotor.tolerance
+            abs(prevTarget-value) > transitioningRightMotor.tolerance
         }
         checkToInvalidate()
     }
@@ -83,7 +83,6 @@ class TractionView(context: Context, attrs: AttributeSet?) : View(context, attrs
         }
     }
 
-    @SuppressLint("DrawAllocation")
     override fun onDraw(canvas: Canvas) {
 
         super.onDraw(canvas)
@@ -116,9 +115,9 @@ class TractionView(context: Context, attrs: AttributeSet?) : View(context, attrs
 
         checkToInvalidate()
     }
-    val forwardTop = -0.25f
-    val reverseBottom = 0.25f;
-    fun shader(): Shader {
+    private val forwardTop = -0.25f
+    private val reverseBottom = 0.25f
+    private fun shader(): Shader {
         val shader = LinearGradient(
             0f, width*forwardTop,
             0f, width*reverseBottom,
@@ -133,7 +132,7 @@ class TractionView(context: Context, attrs: AttributeSet?) : View(context, attrs
         )
         return shader
     }
-    fun forwardShader(value:Float): Shader {
+    private fun forwardShader(value:Float): Shader {
         val shader = LinearGradient(
             0f, width*forwardTop*value,
             0f, 0f,
@@ -146,7 +145,7 @@ class TractionView(context: Context, attrs: AttributeSet?) : View(context, attrs
         )
         return shader
     }
-    fun reverseShader(value:Float): Shader {
+    private fun reverseShader(value:Float): Shader {
         val shader = LinearGradient(
             0f, -width*reverseBottom*value,
             0f, 0f,
@@ -159,7 +158,7 @@ class TractionView(context: Context, attrs: AttributeSet?) : View(context, attrs
         )
         return shader
     }
-    fun drawScale(canvas: Canvas, value: Float){
+    private fun drawScale(canvas: Canvas, value: Float){
         val thickness = 0.06f
         fillPaint.shader = shader()
         canvas.drawRect(0f, width*forwardTop, -width*thickness, width*reverseBottom, fillPaint)
@@ -189,7 +188,7 @@ class TractionView(context: Context, attrs: AttributeSet?) : View(context, attrs
 
     }
 
-    fun drawScales(canvas: Canvas){
+    private fun drawScales(canvas: Canvas){
         val shift = 0.22f
         fillPaint.color = Color.WHITE
         //canvas.drawRect(-width*shift, width*forwardTop, width*shift, width*reverseBottom, fillPaint)
@@ -201,7 +200,7 @@ class TractionView(context: Context, attrs: AttributeSet?) : View(context, attrs
 
     }
 
-    fun drawCar(canvas: Canvas){
+    private fun drawCar(canvas: Canvas){
 
         val carWidth = width*0.45f
         val carHeight = carWidth*782/651

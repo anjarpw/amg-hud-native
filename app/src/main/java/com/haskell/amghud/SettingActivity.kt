@@ -68,20 +68,20 @@ class SettingActivity : AppCompatActivity() {
             finish()
         }
         lifecycleScope.launch {
-            bleViewModel.state.collectLatest { it ->
-                setupStatusTextView?.text = it.setupStatus
-                scanResultsTextView?.text = it.scanResults.entries.joinToString(separator = "\n") { (key, value) ->
+            bleViewModel.state.collectLatest {
+                setupStatusTextView.text = it.setupStatus
+                scanResultsTextView.text = it.scanResults.entries.joinToString(separator = "\n") { (key, value) ->
                     "$key = $value"
                 }
             }
         }
 
 
-        BLEPermissionHandler.ensureNecessaryPermissions(this, { permissions ->
+        BLEPermissionHandler.ensureNecessaryPermissions(this) { permissions ->
             if (permissions.any { !it.value }) {
                 return@ensureNecessaryPermissions
             }
-            if(isUsingFakeBLE){
+            if (isUsingFakeBLE) {
                 val fakeServiceConnection = GenericServiceConnection(
                     this,
                     FakeBLEService::class.java,
@@ -89,12 +89,13 @@ class SettingActivity : AppCompatActivity() {
                         override fun onServiceConnected(service: FakeBLEService?) {
                             bleService = service
                         }
+
                         override fun onServiceDisconnected() {
                         }
                     }
                 )
                 fakeServiceConnection.bindService()
-            }else{
+            } else {
                 val serviceConnection = GenericServiceConnection(
                     this,
                     BLEService::class.java,
@@ -109,7 +110,7 @@ class SettingActivity : AppCompatActivity() {
                 )
                 serviceConnection.bindService()
             }
-        })
+        }
     }
     @SuppressLint("UnspecifiedRegisterReceiverFlag")
     override fun onResume() {
