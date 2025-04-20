@@ -7,7 +7,7 @@ import android.graphics.Paint
 import android.graphics.Rect
 import android.graphics.Typeface
 import android.util.AttributeSet
-import android.view.View
+import android.util.Size
 import com.haskell.amghud.GearMode
 import com.haskell.amghud.TransitioningValue
 import kotlin.math.abs
@@ -15,7 +15,7 @@ import kotlin.math.abs
 
 val GearModes: Array<GearMode> = arrayOf(GearMode.T, GearMode.P, GearMode.R, GearMode.D, GearMode.S, GearMode.S_PLUS)
 
-class GearSelectorView(context: Context, attrs: AttributeSet?) : View(context, attrs)  {
+class GearSelectorView(context: Context, attrs: AttributeSet?) : BaseView(context, attrs)  {
 
     private var typeface: Typeface? = null
 
@@ -29,14 +29,10 @@ class GearSelectorView(context: Context, attrs: AttributeSet?) : View(context, a
         }
     }
 
-    private val transitioningGearSelectorIndex: TransitioningValue<Float> =
-        object : TransitioningValue<Float>(0.0f) {
-            override fun extrapolate(
-            ): Float {
-                return from + (target - from) * progress
-            }
-        }
-
+    private val transitioningGearSelectorIndex: TransitioningValue<Float> = generateTransition(0.0f, 0.1f,
+        fun (from: Float, target: Float, progress: Float): Float {
+           return from + (target - from) * progress
+        })
 
     fun setGearMode(value: GearMode){
         val index = GearModes.indexOf(value)
@@ -45,33 +41,21 @@ class GearSelectorView(context: Context, attrs: AttributeSet?) : View(context, a
         }
         checkToInvalidate()
     }
-    private fun checkToInvalidate(){
-        if(transitioningGearSelectorIndex.isUpdateRequired()){
-            invalidate()
-        }
-    }
-    override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-        super.onMeasure(widthMeasureSpec, heightMeasureSpec)
 
-        val screenWidth = resources.displayMetrics.widthPixels
-        val resizedWidth = screenWidth * 0.1f
-
-        // Set the measured dimensions to be a square
-        setMeasuredDimension(resizedWidth.toInt(), resources.displayMetrics.heightPixels)
+    override fun doResize(width: Int, height: Int): Size {
+        return Size((width*0.1f).toInt(), height)
     }
 
     private val textPaint = Paint()
     private val textBound = Rect()
 
-    override fun onDraw(canvas: Canvas) {
-        super.onDraw(canvas)
-        transitioningGearSelectorIndex.update(0.1f)
+    override fun doDrawing(canvas: Canvas) {
         textPaint.typeface = typeface
         textPaint.setShadowLayer(5f, 1f, 1f, Color.BLACK) // shadow radius, dx, dy, shadow color
         textPaint.color = Color.WHITE
 
         val h = height
-        val fontSize = h/18
+        val fontSize = h/15
         val gapSize = fontSize*1.1f
         val top = (height-gapSize*6f)/2f
         for ((index, gearMode) in GearModes.withIndex()) {
@@ -83,11 +67,10 @@ class GearSelectorView(context: Context, attrs: AttributeSet?) : View(context, a
             textPaint.getTextBounds(text, 0, text.length, textBound)
 
             canvas.drawText(text,
-                width*0.5f,
+                width*0.1f,
                 index*gapSize + top + textBound.height()*0.5f,
                 textPaint)
         }
-        checkToInvalidate()
     }
 
     private fun computeActiveIntensity(index: Int): Float{

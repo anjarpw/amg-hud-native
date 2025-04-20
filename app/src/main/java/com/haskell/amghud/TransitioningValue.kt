@@ -1,9 +1,17 @@
 package com.haskell.amghud
 
+
+interface ITransitioningUpdate{
+    fun update();
+    fun isUpdateRequired(): Boolean
+}
+
+
 abstract class TransitioningValue<T>(
     initialValue: T,
+    var fractionSpeed: Float,
     var tolerance: Float = 0.01f
-) {
+): ITransitioningUpdate {
     var progress: Float = 0f
         private set
 
@@ -27,14 +35,14 @@ abstract class TransitioningValue<T>(
         progress = 0.0f
     }
 
-    fun update(fractionSpeed: Float) {
+    override fun update() {
         progress += (1f - progress) * fractionSpeed
         if(!isUpdateRequired()){
             progress = 1.0f
         }
     }
 
-    fun isUpdateRequired(): Boolean{
+    override fun isUpdateRequired(): Boolean{
         return progress < 1.0f - tolerance
     }
 

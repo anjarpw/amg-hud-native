@@ -63,35 +63,28 @@ val gearConfigMap: Map<GearMode, GaugeDisplayedConfig> = mapOf(
 
 private const val CUMULATED_POWER_FRACTION = 0.5f
 private const val MODE_TRANSITION_FRACTION = 0.1f
-class CircularGaugeView(context: Context, attrs: AttributeSet?) : View(context, attrs) {
+class CircularGaugeView(context: Context, attrs: AttributeSet?) : BaseView(context, attrs) {
     private val gaugeRect = RectF()
-    private var snapshotBitmap: Bitmap =  Bitmap.createBitmap(1,1,Bitmap.Config.ARGB_8888)
-    private var snapshotCanvas: Canvas = Canvas()
-    private val srcBufferedRectangle: Rect = Rect()
-    private val destBufferedRectangle: Rect = Rect()
 
-    private val transitioningMode: TransitioningValue<GaugeDisplayedConfig> =
-        object : TransitioningValue<GaugeDisplayedConfig>(DefaultGearP) {
-            override fun extrapolate(
-            ): GaugeDisplayedConfig {
-                return GaugeDisplayedConfig(
-                    mode = target.mode,
-                    needleType = target.needleType,
-                    min = from.min + (target.min - from.min) * progress,
-                    max = from.max + (target.max - from.max) * progress,
-                    limit = from.limit + (target.limit - from.limit) * progress,
-                    circularSize = from.circularSize + (target.circularSize - from.circularSize) * progress,
-                    backgroundCircularSize = from.backgroundCircularSize + (target.backgroundCircularSize - from.backgroundCircularSize) * progress,
-                )
-            }
-        }
-    private val transitioningCumulatedPower: TransitioningValue<Float> =
-        object : TransitioningValue<Float>(0.0f) {
-            override fun extrapolate(
-            ): Float {
-                return from + (target - from) * progress
-            }
-        }
+    private val transitioningMode: TransitioningValue<GaugeDisplayedConfig> = generateTransition(
+        DefaultGearP, MODE_TRANSITION_FRACTION,
+        fun (from: GaugeDisplayedConfig, target: GaugeDisplayedConfig, progress: Float): GaugeDisplayedConfig{
+            return GaugeDisplayedConfig(
+                mode = target.mode,
+                needleType = target.needleType,
+                min = from.min + (target.min - from.min) * progress,
+                max = from.max + (target.max - from.max) * progress,
+                limit = from.limit + (target.limit - from.limit) * progress,
+                circularSize = from.circularSize + (target.circularSize - from.circularSize) * progress,
+                backgroundCircularSize = from.backgroundCircularSize + (target.backgroundCircularSize - from.backgroundCircularSize) * progress,
+            )
+
+        })
+    private val transitioningCumulatedPower: TransitioningValue<Float> = generateTransition(0.0f, CUMULATED_POWER_FRACTION,
+        fun (from: Float, target: Float, progress: Float): Float{
+            return from + (target - from) * progress
+
+        })
 
     private var typeface: Typeface? = null
 
@@ -119,17 +112,12 @@ class CircularGaugeView(context: Context, attrs: AttributeSet?) : View(context, 
         checkToInvalidate()
     }
 
-    private fun checkToInvalidate(){
-        if(transitioningMode.isUpdateRequired() || transitioningCumulatedPower.isUpdateRequired()){
-            invalidate()
-        }
-    }
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
-        snapshotBitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+        backgroundCanvasManager.setSize(w, h)
     }
 
-    private fun concludeGraphicalComputation(): GaugePosition {
+    private fun concludeGraphicalComputation() {
         val mode = transitioningMode.current
         var xSize = 2f
         if(mode.backgroundCircularSize<0.5f){
@@ -153,7 +141,7 @@ class CircularGaugeView(context: Context, attrs: AttributeSet?) : View(context, 
         val tx = width*0.5f
         val ty = height*0.5f - h*0.5f + radius
 
-        return GaugePosition(tx, ty, w, h, radius, radius * 0.8f)
+        gaugePosition = GaugePosition(tx, ty, w, h, radius, radius * 0.8f)
     }
 
     private fun goldenShader(angle: Float, radius: Float): Shader{
@@ -201,54 +189,57 @@ class CircularGaugeView(context: Context, attrs: AttributeSet?) : View(context, 
         return shader
     }
 
+    private var gaugePosition: GaugePosition = GaugePosition();
 
-    private fun drawBackground(gaugePosition: GaugePosition){
-        snapshotCanvas = Canvas(snapshotBitmap)
-        snapshotCanvas.save()
-        snapshotCanvas.translate(gaugePosition.tx, gaugePosition.ty)
-        snapshotCanvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR)
-        val mode = transitioningMode.current
-        val radius = gaugePosition.innerRadius
+    private val backgroundCanvasManager = CanvasManager(fun(): Boolean {
+        return transitioningMode.isUpdateRequired()
+    },
+        fun(canvas: Canvas){
+            canvas.save()
+            canvas.translate(gaugePosition.tx, gaugePosition.ty)
+            canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR)
+            val mode = transitioningMode.current
+            val radius = gaugePosition.innerRadius
 
-        // drawBackground
-        val chromeEdgePaint = Paint()
-        chromeEdgePaint.style = Paint.Style.STROKE
-        chromeEdgePaint.shader = thinChromeShader((mode.circularSize*Math.PI).toFloat(), radius)
-        chromeEdgePaint.strokeWidth = 4f
+            // drawBackground
+            val chromeEdgePaint = Paint()
+            chromeEdgePaint.style = Paint.Style.STROKE
+            chromeEdgePaint.shader = thinChromeShader((mode.circularSize*Math.PI).toFloat(), radius)
+            chromeEdgePaint.strokeWidth = 4f
 
-        val chromePaint = Paint()
-        chromePaint.style = Paint.Style.STROKE
-        chromePaint.shader = chromeShader((mode.circularSize*Math.PI).toFloat(), radius)
-        chromePaint.strokeWidth = 12f
+            val chromePaint = Paint()
+            chromePaint.style = Paint.Style.STROKE
+            chromePaint.shader = chromeShader((mode.circularSize*Math.PI).toFloat(), radius)
+            chromePaint.strokeWidth = 12f
 
-        val goldenPaint = Paint()
-        goldenPaint.shader = goldenShader((mode.circularSize*Math.PI).toFloat(), radius)
-        goldenPaint.strokeWidth = 8f
-        goldenPaint.style = Paint.Style.STROKE
+            val goldenPaint = Paint()
+            goldenPaint.shader = goldenShader((mode.circularSize*Math.PI).toFloat(), radius)
+            goldenPaint.strokeWidth = 8f
+            goldenPaint.style = Paint.Style.STROKE
 
-        val redPaint = Paint()
-        redPaint.style = Paint.Style.STROKE
-        redPaint.color = Color.parseColor("#44FF0000")
-        redPaint.strokeWidth = 160f
+            val redPaint = Paint()
+            redPaint.style = Paint.Style.STROKE
+            redPaint.color = Color.parseColor("#44FF0000")
+            redPaint.strokeWidth = 160f
 
-        val redLimit = mode.limit.coerceIn(mode.min, mode.max)
-        val angleFrom = 270-mode.circularSize*180
-        val angleTo = 270+mode.circularSize*180
-        val redLimitAngle = (redLimit-mode.min)/(mode.max-mode.min)*mode.circularSize*360
-        drawArcWithRadius(snapshotCanvas, radius, angleFrom, angleTo, chromeEdgePaint)
-        drawArcWithRadius(snapshotCanvas, radius+12, angleFrom, angleTo, goldenPaint)
-        drawArcWithRadius(snapshotCanvas, radius - 20f, angleFrom, angleTo, chromeEdgePaint)
-        drawArcWithRadius(snapshotCanvas, radius-10f, angleFrom, angleTo, chromePaint)
-        drawArcWithRadius(snapshotCanvas, radius-10f, angleFrom, angleTo, chromePaint)
-        drawArcWithRadius(snapshotCanvas, radius-100f,angleFrom + redLimitAngle,angleTo, redPaint)
+            val redLimit = mode.limit.coerceIn(mode.min, mode.max)
+            val angleFrom = 270-mode.circularSize*180
+            val angleTo = 270+mode.circularSize*180
+            val redLimitAngle = (redLimit-mode.min)/(mode.max-mode.min)*mode.circularSize*360
+            drawArcWithRadius(canvas, radius, angleFrom, angleTo, chromeEdgePaint)
+            drawArcWithRadius(canvas, radius+12, angleFrom, angleTo, goldenPaint)
+            drawArcWithRadius(canvas, radius - 20f, angleFrom, angleTo, chromeEdgePaint)
+            drawArcWithRadius(canvas, radius-10f, angleFrom, angleTo, chromePaint)
+            drawArcWithRadius(canvas, radius-10f, angleFrom, angleTo, chromePaint)
+            drawArcWithRadius(canvas, radius-100f,angleFrom + redLimitAngle,angleTo, redPaint)
+
+            drawScales(canvas)
+            canvas.restore()
+    })
 
 
-        drawScales(gaugePosition)
-        snapshotCanvas.restore()
 
-    }
-
-    private fun drawScales(gaugePosition: GaugePosition){
+    private fun drawScales(canvas: Canvas){
         val mode = transitioningMode.current
         val radius = gaugePosition.innerRadius
 
@@ -294,13 +285,13 @@ class CircularGaugeView(context: Context, attrs: AttributeSet?) : View(context, 
                 scalePaint.strokeWidth = 8f
             }
             val angle = (-1 + 2*(idx.toFloat()/scaleFraction-mode.min)/(mode.max-mode.min))*Math.PI*mode.circularSize
-            snapshotCanvas.drawLine(
+            canvas.drawLine(
                 (sin(angle)*(rInner-4)).toFloat(),
                 -(cos(angle)*(rInner-4)).toFloat(),
                 (sin(angle)*(rOuter+4)).toFloat(),
                 -(cos(angle)*(rOuter+4)).toFloat(), backgroundScalePaint)
 
-            snapshotCanvas.drawLine(
+            canvas.drawLine(
                 (sin(angle)*rInner).toFloat(),
                 -(cos(angle)*rInner).toFloat(),
                 (sin(angle)*rOuter).toFloat(),
@@ -326,37 +317,27 @@ class CircularGaugeView(context: Context, attrs: AttributeSet?) : View(context, 
                 val text = (idx/scaleFraction).toString()
                 textPaint.getTextBounds(text, 0, text.length, bounds)
                 val angle = (-1 + 2*(idx.toFloat()/scaleFraction-mode.min)/(mode.max-mode.min))*Math.PI*mode.circularSize
-                snapshotCanvas.drawText(text,
+                canvas.drawText(text,
                     0+(sin(angle)*(rInner-4)).toFloat() - bounds.width()/2,
                     0-(cos(angle)*(rInner-4)).toFloat() + bounds.height()/2,
                     textPaint)
             }
         }
-
-
     }
 
-    override fun onDraw(canvas: Canvas) {
-        super.onDraw(canvas)
+    override fun doDrawing(canvas: Canvas) {
         if(width/height < 1){
             return
         }
-
-        transitioningCumulatedPower.update(CUMULATED_POWER_FRACTION)
-        transitioningMode.update(MODE_TRANSITION_FRACTION)
-
         render(canvas)
-
-        checkToInvalidate()
     }
 
 
     private val paint = Paint()
     private fun render(canvas: Canvas) {
-        val gaugePosition = concludeGraphicalComputation()
+        concludeGraphicalComputation()
 
-        srcBufferedRectangle.set(0, 0, snapshotBitmap.width, snapshotBitmap.height) // Source rectangle
-        destBufferedRectangle.set(-gaugePosition.tx.toInt(), -gaugePosition.ty.toInt(), -gaugePosition.tx.toInt()+srcBufferedRectangle.width(), -gaugePosition.ty.toInt()+srcBufferedRectangle.height()) // Source rectangle
+        //destBufferedRectangle.set() // Source rectangle
 
 
         canvas.save()
@@ -366,20 +347,19 @@ class CircularGaugeView(context: Context, attrs: AttributeSet?) : View(context, 
         paint.color = -0x10000 // Red
 
         if(transitioningMode.current.circularSize > 0) {
-            if(transitioningMode.isUpdateRequired()){
-                drawBackground(gaugePosition)
-            }else{
-                Log.i("CircularGaugeView", "Use buffer")
-            }
-            drawBackgroundNeedle(canvas, gaugePosition)
-            canvas.drawBitmap(snapshotBitmap, srcBufferedRectangle, destBufferedRectangle, Paint())
-            drawNeedle(canvas, gaugePosition)
+            drawBackgroundNeedle(canvas)
+            backgroundCanvasManager.applyToCanvas(canvas,
+                -gaugePosition.tx.toInt(),
+                -gaugePosition.ty.toInt(),
+                -gaugePosition.tx.toInt()+width,
+                -gaugePosition.ty.toInt()+height)
+            drawNeedle(canvas)
         }
-        drawMode(canvas, gaugePosition)
+        drawMode(canvas)
         canvas.restore()
     }
 
-    private fun drawMode(canvas: Canvas, gaugePosition: GaugePosition){
+    private fun drawMode(canvas: Canvas){
         val gearOrders = arrayListOf(GearMode.T, GearMode.P, GearMode.R, GearMode.D, GearMode.S, GearMode.S_PLUS)
         val textTargetPaint = Paint()
         val radius = gaugePosition.innerRadius
@@ -429,7 +409,7 @@ class CircularGaugeView(context: Context, attrs: AttributeSet?) : View(context, 
         canvas.drawArc(gaugeRect, from, to-from, false, paint)
     }
 
-    private fun drawBackgroundNeedle(canvas: Canvas, gaugePosition: GaugePosition) {
+    private fun drawBackgroundNeedle(canvas: Canvas) {
         val mode = transitioningMode.current
         val radius = gaugePosition.innerRadius
 
@@ -459,7 +439,7 @@ class CircularGaugeView(context: Context, attrs: AttributeSet?) : View(context, 
         drawArcWithRadius(canvas, radius-100f, 270-mode.circularSize*180, 270-mode.circularSize*180+powerAngle, blueShadePaint)
 
     }
-    private fun drawNeedle(canvas: Canvas, gaugePosition: GaugePosition){
+    private fun drawNeedle(canvas: Canvas){
         val mode = transitioningMode.current
         val cumulatedPower = transitioningCumulatedPower.current.coerceIn(mode.min, mode.limit)
         val radius = gaugePosition.innerRadius

@@ -14,12 +14,13 @@ import android.graphics.PorterDuffXfermode
 import android.graphics.Rect
 import android.graphics.Shader
 import android.util.AttributeSet
+import android.util.Size
 import android.view.View
 import com.haskell.amghud.R
 import com.haskell.amghud.TransitioningValue
 import kotlin.math.abs
 
-class TractionView(context: Context, attrs: AttributeSet?) : View(context, attrs) {
+class TractionView(context: Context, attrs: AttributeSet?) : BaseView(context, attrs) {
     private val camera: Camera = Camera()
     private val matrix: Matrix = Matrix()
     private val additionalPaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
@@ -29,21 +30,16 @@ class TractionView(context: Context, attrs: AttributeSet?) : View(context, attrs
     private val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
     private val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
 
-    private val transitioningLeftMotor: TransitioningValue<Float> =
-        object : TransitioningValue<Float>(0.0f) {
-            override fun extrapolate(
-            ): Float {
-                return from + (target - from) * progress
-            }
-        }
+    private val transitioningLeftMotor: TransitioningValue<Float> = generateTransition(0f,0.1f,
+        fun (from: Float, target: Float, progress: Float): Float{
+            return from + (target - from) * progress
+        })
 
-    private val transitioningRightMotor: TransitioningValue<Float> =
-        object : TransitioningValue<Float>(0.0f) {
-            override fun extrapolate(
-            ): Float {
-                return from + (target - from) * progress
-            }
-        }
+    private val transitioningRightMotor: TransitioningValue<Float> = generateTransition(0f,0.1f,
+        fun (from: Float, target: Float, progress: Float): Float{
+            return from + (target - from) * progress
+        })
+
 
     init{
         bitmapA = BitmapFactory.decodeResource(resources,R.drawable.car5a)
@@ -55,15 +51,10 @@ class TractionView(context: Context, attrs: AttributeSet?) : View(context, attrs
         additionalPaint.xfermode = PorterDuffXfermode(PorterDuff.Mode.ADD)
     }
 
-    override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-        super.onMeasure(widthMeasureSpec, heightMeasureSpec)
-
-        val screenWidth = resources.displayMetrics.widthPixels
-        val resizedWidth = screenWidth * 0.3f
-
-        // Set the measured dimensions to be a square
-        setMeasuredDimension(resizedWidth.toInt(), resources.displayMetrics.heightPixels)
+    override fun doResize(width: Int, height: Int): Size {
+        return Size((width*0.3f).toInt(), height)
     }
+
 
     fun setLeftMotor(value: Float){
         transitioningLeftMotor.resetTarget(value) { prevTarget ->
@@ -77,18 +68,8 @@ class TractionView(context: Context, attrs: AttributeSet?) : View(context, attrs
         }
         checkToInvalidate()
     }
-    private fun checkToInvalidate(){
-        if(transitioningRightMotor.isUpdateRequired() || transitioningLeftMotor.isUpdateRequired()){
-            invalidate()
-        }
-    }
 
-    override fun onDraw(canvas: Canvas) {
-
-        super.onDraw(canvas)
-        transitioningLeftMotor.update(0.1f)
-        transitioningRightMotor.update(0.1f)
-
+    override fun doDrawing(canvas: Canvas) {
         val centerX = width * 0.65f
         val centerY = height*0.5f//width * 0.5f
 
@@ -113,7 +94,6 @@ class TractionView(context: Context, attrs: AttributeSet?) : View(context, attrs
         drawCar(canvas)
         canvas.restore()
 
-        checkToInvalidate()
     }
     private val forwardTop = -0.25f
     private val reverseBottom = 0.25f
