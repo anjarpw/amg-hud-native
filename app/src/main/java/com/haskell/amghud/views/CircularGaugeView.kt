@@ -114,7 +114,7 @@ class CircularGaugeView(context: Context, attrs: AttributeSet?) : BaseView(conte
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
-        backgroundCanvasManager.setSize(w, h)
+        backgroundCanvasManager.setSize(width, height)
     }
 
     private fun concludeGraphicalComputation() {

@@ -64,7 +64,7 @@ class CanvasManager(
     val updateCondition: () -> Boolean,
     val onRender: (canvas: Canvas) -> Unit
 ){
-    private var bitmap: Bitmap =  Bitmap.createBitmap(1,1, Bitmap.Config.ARGB_8888)
+    var bitmap: Bitmap =  Bitmap.createBitmap(1,1, Bitmap.Config.ARGB_8888)
     private var canvas: Canvas = Canvas()
     private val sourceRect: Rect = Rect()
     private val targetRect: Rect = Rect()
