@@ -37,6 +37,7 @@ class FakeBLEService: Service(), BLEServiceInterface {
                     val cumulatedPower = cumulatedPowerCounter.toFloat()/10.0
                     val analogBrake = Math.random()*500
                     val analogThrottle = Math.random()*500
+                    val analogSteer = Math.random()*1024
                     sendBroadcast(Intent(BLEConstants.MESSAGE_RECEIVED).putExtra("MESSAGE",
                         "CUMULATED_POWER=$cumulatedPower"
                     ))
@@ -49,6 +50,10 @@ class FakeBLEService: Service(), BLEServiceInterface {
                     sendBroadcast(Intent(BLEConstants.MESSAGE_RECEIVED).putExtra("MESSAGE",
                         "ANALOG_THROTTLE=$analogThrottle"
                     ))
+                    sendBroadcast(Intent(BLEConstants.MESSAGE_RECEIVED).putExtra("MESSAGE",
+                        "ANALOG_STEER=$analogSteer"
+                    ))
+
                 }
                 delay(500) // 500 milliseconds
             }

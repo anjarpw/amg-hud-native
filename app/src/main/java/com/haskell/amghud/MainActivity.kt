@@ -7,7 +7,7 @@ import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
 import android.view.View
-import android.widget.ImageButton
+import android.widget.Button
 import android.widget.TextView
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
@@ -25,6 +25,7 @@ import com.haskell.amghud.views.BlueShadeLow
 import com.haskell.amghud.views.CircularGaugeView
 import com.haskell.amghud.views.GearSelectorView
 import com.haskell.amghud.views.LeverView
+import com.haskell.amghud.views.MiscView
 import com.haskell.amghud.views.PurpleShadeHigh
 import com.haskell.amghud.views.PurpleShadeLow
 import com.haskell.amghud.views.RedShadeHigh
@@ -47,6 +48,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var gearSelectorView: GearSelectorView
     private lateinit var brakeView: LeverView
     private lateinit var throttleView: LeverView
+    private lateinit var miscView: MiscView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -73,13 +75,14 @@ class MainActivity : AppCompatActivity() {
         throttleView = findViewById(R.id.leverThrottleView)
         brakeView.setConfig(RedShadeHigh, RedShadeLow, 300, 500, 0.2f)
         throttleView.setConfig(BlueShadeHigh, BlueShadeLow, 300, 500, 0.2f)
+        miscView = findViewById(R.id.miscView)
 
         tractionView.setSizeProportion(0.3f)
         tractionViewForModeT.setSizeProportion(0.6f)
 
         bleViewModel = ViewModelProvider(this)[BLEViewModel::class.java]
         bleReceiver = BLEBroadcastReceiverForViewModel(bleViewModel)
-        val settingsButton = findViewById<ImageButton>(R.id.settingsButton)
+        val settingsButton = findViewById<Button>(R.id.settingsButton)
 
         settingsButton.setOnClickListener {
             val intent = Intent(this, SettingActivity::class.java)
@@ -97,6 +100,7 @@ class MainActivity : AppCompatActivity() {
                 gearSelectorView.setGearMode(it.mode)
                 throttleView.setValue(it.analogThrottle)
                 brakeView.setValue(it.analogBrake)
+                miscView.setSteerRack(it.analogSteer)
                 if(it.mode == GearMode.R){
                     throttleView.setConfig(PurpleShadeHigh, PurpleShadeLow, 300, 500, 0.2f)
                 }else{
@@ -109,6 +113,9 @@ class MainActivity : AppCompatActivity() {
                     tractionView.setVisibility(true)
                     tractionViewForModeT.setVisibility(false)
                 }
+                miscView.setBrakeIndicator(it.analogBrake>300)
+                miscView.setPowerIndicator(it.analogThrottle>300)
+
             }
         }
         BLEPermissionHandler.ensureNecessaryPermissions(this) { permissions ->

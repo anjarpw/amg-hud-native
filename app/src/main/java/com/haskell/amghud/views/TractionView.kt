@@ -24,8 +24,8 @@ class TractionView(context: Context, attrs: AttributeSet?) : BaseView(context, a
     private val matrix: Matrix = Matrix()
     private val additionalPaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
 
-    private var bitmapA: Bitmap? = null
-    private var bitmapB: Bitmap? = null
+    private var bitmapA: Bitmap =  BitmapFactory.decodeResource(resources,R.drawable.car5a)
+    private var bitmapB: Bitmap =  BitmapFactory.decodeResource(resources,R.drawable.car5b)
     private val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
     private val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
 
@@ -46,14 +46,12 @@ class TractionView(context: Context, attrs: AttributeSet?) : BaseView(context, a
 
 
     init{
-        bitmapA = BitmapFactory.decodeResource(resources,R.drawable.car5a)
-        bitmapB = BitmapFactory.decodeResource(resources,R.drawable.car5b)
-        invalidate() // Redraw the view
         fillPaint.style = Paint.Style.FILL
         fillPaint.color = Color.WHITE
         strokePaint.style = Paint.Style.STROKE
         additionalPaint.style = Paint.Style.FILL
         additionalPaint.xfermode = PorterDuffXfermode(PorterDuff.Mode.ADD)
+        invalidate() // Redraw the view
     }
 
     private var sizeProportion = 0.3f
@@ -78,7 +76,7 @@ class TractionView(context: Context, attrs: AttributeSet?) : BaseView(context, a
         }
         checkToInvalidate()
     }
-    var isVisible = false
+    private var isVisible = false
     fun setVisibility(isVisible: Boolean){
         if(this.isVisible == isVisible){
             return
@@ -260,18 +258,18 @@ class TractionView(context: Context, attrs: AttributeSet?) : BaseView(context, a
         canvas.translate(centerX, centerY)
         val carWidth = width*0.40f
         val carHeight = carWidth*782/651
-        val rectSource = Rect(0,0, bitmapA!!.width, bitmapA!!.height)
+        val rectSource = Rect(0,0, bitmapA.width, bitmapA.height)
         val rectTarget = Rect(
             (-carWidth*0.5f).toInt(),
             (-carHeight*0.5f).toInt(),
             (carWidth*0.5f).toInt(),
             (carHeight*0.5f).toInt(),
         )
-        canvas.drawBitmap(bitmapA!!, rectSource , rectTarget, fillPaint)
+        canvas.drawBitmap(bitmapA, rectSource , rectTarget, fillPaint)
         canvas.restore()
 
     }
-    private var grandProportion = 1f;
+    private var grandProportion = 1f
     private fun drawCar(canvas: Canvas){
         canvas.save()
         canvas.translate(centerX, centerY)
@@ -279,7 +277,7 @@ class TractionView(context: Context, attrs: AttributeSet?) : BaseView(context, a
         val carWidth = width*0.4f*grandProportion
         val carHeight = carWidth*782/651
 
-        val rectSource = Rect(0,0, bitmapB!!.width, bitmapB!!.height)
+        val rectSource = Rect(0,0, bitmapB.width, bitmapB.height)
         val rectTarget = Rect(
             (-carWidth*0.5f).toInt(),
             (-carHeight*0.5f).toInt(),
@@ -287,7 +285,7 @@ class TractionView(context: Context, attrs: AttributeSet?) : BaseView(context, a
             (carHeight*0.5f).toInt(),
         )
         additionalPaint.color = Color.parseColor("#FFFFFFFF")
-        canvas.drawBitmap(bitmapB!!, rectSource , rectTarget, additionalPaint)
+        canvas.drawBitmap(bitmapB, rectSource , rectTarget, additionalPaint)
         canvas.restore()
 
     }

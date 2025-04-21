@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
+import android.graphics.Path
 import android.graphics.Rect
 import android.graphics.Typeface
 import android.util.AttributeSet
@@ -47,9 +48,12 @@ class GearSelectorView(context: Context, attrs: AttributeSet?) : BaseView(contex
     }
 
     private val textPaint = Paint()
+    private val redPaint = Paint()
     private val textBound = Rect()
 
     override fun doDrawing(canvas: Canvas) {
+        redPaint.color = Color.RED
+        redPaint.style = Paint.Style.FILL
         textPaint.typeface = typeface
         textPaint.setShadowLayer(5f, 1f, 1f, Color.BLACK) // shadow radius, dx, dy, shadow color
         textPaint.color = Color.WHITE
@@ -63,15 +67,25 @@ class GearSelectorView(context: Context, attrs: AttributeSet?) : BaseView(contex
             val intensity = computeActiveIntensity(index)
 
             textPaint.textSize = (intensity*0.4f + 0.6f)*fontSize
-            textPaint.alpha = 255-((1f-intensity)*128).toInt()
+            textPaint.alpha = 255-((1f-intensity)*200).toInt()
             textPaint.getTextBounds(text, 0, text.length, textBound)
 
             canvas.drawText(text,
-                0f,
+                30f,
                 index*gapSize + top + textBound.height()*0.5f,
                 textPaint)
         }
+        val path = Path()
+        path.moveTo(0f, -12f)
+        path.lineTo(20f, 0f)
+        path.lineTo(0f, 12f)
+        path.close()
+        canvas.save()
+        canvas.translate(0f,transitioningGearSelectorIndex.current*gapSize + top)
+        canvas.drawPath(path, redPaint)
+        canvas.restore()
     }
+
 
     private fun computeActiveIntensity(index: Int): Float{
         var intensity = 1f-abs(index-transitioningGearSelectorIndex.current)

@@ -19,7 +19,8 @@ data class BLEState(
     val leftMotor: Float = 0.0f,
     val rightMotor: Float = 0.0f,
     val analogThrottle: Float = 0.0f,
-    val analogBrake: Float = 0.0f
+    val analogBrake: Float = 0.0f,
+    val analogSteer: Float = 0.0f
 )
 sealed class BLEIntent {
     data class UpdateMessage(val key: String, val value: String) : BLEIntent()
@@ -86,6 +87,7 @@ class BLEViewModel : ViewModel() {
                     var rightMotor = _state.value.rightMotor
                     var analogBrake = _state.value.analogBrake
                     var analogThrottle = _state.value.analogThrottle
+                    var analogSteer = _state.value.analogSteer
                     when(intent.key){
                         "CUMULATED_POWER" -> cumulatedPower = intent.value.toFloat()
                         "MODE" -> mode = GearMode.fromString(intent.value) ?: GearMode.P
@@ -93,6 +95,7 @@ class BLEViewModel : ViewModel() {
                         "RIGHT_MOTOR" -> rightMotor = intent.value.toFloat()
                         "ANALOG_BRAKE" -> analogBrake = intent.value.toFloat()
                         "ANALOG_THROTTLE" -> analogThrottle = intent.value.toFloat()
+                        "ANALOG_STEER" -> analogSteer = intent.value.toFloat()
                     }
                     _state.value = _state.value.copy(
                         scanResults = updatedMap,
@@ -100,6 +103,7 @@ class BLEViewModel : ViewModel() {
                         mode = mode,
                         leftMotor = leftMotor,
                         rightMotor = rightMotor,
+                        analogSteer = analogSteer,
                         analogBrake = analogBrake,
                         analogThrottle = analogThrottle
 

@@ -1,6 +1,7 @@
 package com.haskell.amghud.views
 import android.graphics.Color
 
+val DarkShade = Color.parseColor("#FF335599")
 val BlueShadeHigh = Color.parseColor("#AA00AEFF")
 val BlueShadeLow = Color.parseColor("#44001E80")
 val RedShadeHigh = Color.parseColor("#AAFF0000")
