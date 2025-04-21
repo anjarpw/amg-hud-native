@@ -43,7 +43,7 @@ class GearSelectorView(context: Context, attrs: AttributeSet?) : BaseView(contex
     }
 
     override fun doResize(width: Int, height: Int): Size {
-        return Size((width*0.1f).toInt(), height)
+        return Size((width*0.08f).toInt(), height)
     }
 
     private val textPaint = Paint()
@@ -57,7 +57,7 @@ class GearSelectorView(context: Context, attrs: AttributeSet?) : BaseView(contex
         val h = height
         val fontSize = h/15
         val gapSize = fontSize*1.1f
-        val top = (height-gapSize*6f)/2f
+        val top = (height-gapSize*7f)/2f
         for ((index, gearMode) in GearModes.withIndex()) {
             val text = gearMode.stringAlias
             val intensity = computeActiveIntensity(index)
@@ -67,7 +67,7 @@ class GearSelectorView(context: Context, attrs: AttributeSet?) : BaseView(contex
             textPaint.getTextBounds(text, 0, text.length, textBound)
 
             canvas.drawText(text,
-                width*0.1f,
+                0f,
                 index*gapSize + top + textBound.height()*0.5f,
                 textPaint)
         }

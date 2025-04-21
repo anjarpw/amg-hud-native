@@ -1,7 +1,6 @@
 package com.haskell.amghud.views
 
 import android.content.Context
-import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.LinearGradient
@@ -14,8 +13,6 @@ import android.graphics.Shader
 import android.graphics.SweepGradient
 import android.graphics.Typeface
 import android.util.AttributeSet
-import android.util.Log
-import android.view.View
 import com.haskell.amghud.GearMode
 import com.haskell.amghud.TransitioningValue
 import kotlin.math.abs
@@ -144,6 +141,16 @@ class CircularGaugeView(context: Context, attrs: AttributeSet?) : BaseView(conte
         gaugePosition = GaugePosition(tx, ty, w, h, radius, radius * 0.8f)
     }
 
+    private fun radialBlackShader(radius1: Float, radius2: Float): Shader{
+        return RadialGradient(0f,0f,radius2, intArrayOf(
+            Color.parseColor("#AA000000"),
+            Color.TRANSPARENT
+            ),
+            floatArrayOf(radius1/radius2,1f),
+            Shader.TileMode.CLAMP
+        )
+    }
+
     private fun goldenShader(angle: Float, radius: Float): Shader{
         val shader = LinearGradient(
             0f, -radius,
@@ -197,7 +204,6 @@ class CircularGaugeView(context: Context, attrs: AttributeSet?) : BaseView(conte
         fun(canvas: Canvas){
             canvas.save()
             canvas.translate(gaugePosition.tx, gaugePosition.ty)
-            canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR)
             val mode = transitioningMode.current
             val radius = gaugePosition.innerRadius
 
@@ -217,6 +223,11 @@ class CircularGaugeView(context: Context, attrs: AttributeSet?) : BaseView(conte
             goldenPaint.strokeWidth = 8f
             goldenPaint.style = Paint.Style.STROKE
 
+
+            val blackShadePaint = Paint()
+            blackShadePaint.shader = radialBlackShader(radius-180, radius-50)
+            blackShadePaint.style = Paint.Style.FILL
+
             val redPaint = Paint()
             redPaint.style = Paint.Style.STROKE
             redPaint.color = Color.parseColor("#44FF0000")
@@ -232,7 +243,7 @@ class CircularGaugeView(context: Context, attrs: AttributeSet?) : BaseView(conte
             drawArcWithRadius(canvas, radius-10f, angleFrom, angleTo, chromePaint)
             drawArcWithRadius(canvas, radius-10f, angleFrom, angleTo, chromePaint)
             drawArcWithRadius(canvas, radius-100f,angleFrom + redLimitAngle,angleTo, redPaint)
-
+            canvas.drawCircle(0f,0f, radius, blackShadePaint)
             drawScales(canvas)
             canvas.restore()
     })
@@ -392,13 +403,13 @@ class CircularGaugeView(context: Context, attrs: AttributeSet?) : BaseView(conte
 
         val bottom = -cos(Math.PI*transitioningMode.current.circularSize).toFloat()
         canvas.drawText(textOrigin,
-            -boundsOrigin.width().toFloat()/2,
+            -boundsOrigin.width().toFloat()*0.6f,
             0f.coerceAtMost(bottom) + boundsOrigin.height()/2 + verticalOriginOffset,
             textOriginPaint)
 
 
         canvas.drawText(textTarget,
-            -boundsTarget.width().toFloat()/2,
+            -boundsTarget.width().toFloat()*0.6f,
             0f.coerceAtMost(bottom) + boundsTarget.height()/2 + verticalTargetOffset,
             textTargetPaint)
 
@@ -420,23 +431,31 @@ class CircularGaugeView(context: Context, attrs: AttributeSet?) : BaseView(conte
         val startAngle = 0.75f-mode.circularSize*0.5f
         val stopAngle = startAngle + (mode.circularSize*powerPercentage)
 
+        var colorArray = intArrayOf(
+            Color.TRANSPARENT,
+            BlueShadeHigh,
+        )
+
+        if(transitioningMode.current.mode == GearMode.R){
+            colorArray = intArrayOf(
+                Color.TRANSPARENT,
+                PurpleShadeHigh,
+            )
+        }
         val sweepGradient = SweepGradient(
             0f,
             0f,
-            intArrayOf(
-                Color.parseColor("#11004488"),
-                Color.parseColor("#883388FF"),
-            ),
+            colorArray,
             floatArrayOf(startAngle, stopAngle)
         )
 
         // Set the shader for the Paint object
-        val blueShadePaint = Paint()
-        blueShadePaint.style = Paint.Style.STROKE
-        blueShadePaint.shader = sweepGradient
-        blueShadePaint.strokeWidth = 160f
+        val powerShadePaint = Paint()
+        powerShadePaint.style = Paint.Style.STROKE
+        powerShadePaint.shader = sweepGradient
+        powerShadePaint.strokeWidth = 160f
 
-        drawArcWithRadius(canvas, radius-100f, 270-mode.circularSize*180, 270-mode.circularSize*180+powerAngle, blueShadePaint)
+        drawArcWithRadius(canvas, radius-100f, 270-mode.circularSize*180, 270-mode.circularSize*180+powerAngle, powerShadePaint)
 
     }
     private fun drawNeedle(canvas: Canvas){
@@ -449,13 +468,12 @@ class CircularGaugeView(context: Context, attrs: AttributeSet?) : BaseView(conte
             radius-20,
             intArrayOf(
                 Color.parseColor("#00FF0000"),
-                Color.parseColor("#88FF0000"),
                 Color.parseColor("#FFFF0000"),
-                Color.parseColor("#88FFFFFF"),
+                Color.parseColor("#FFFF0000"),
                 Color.parseColor("#44FF0000"),
 
                 ), // Colors in the gradient
-            floatArrayOf(0f, 0.1f, 0.96f, 0.98f, 1f), // Relative positions of the colors (null for evenly distributed)
+            floatArrayOf(0f, 0.80f, 0.90f, 1f), // Relative positions of the colors (null for evenly distributed)
             Shader.TileMode.CLAMP // Tile mode (CLAMP, REPEAT, MIRROR)
         )
         val paint = Paint()

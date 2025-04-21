@@ -20,8 +20,15 @@ import com.haskell.amghud.ble.BLEPermissionHandler
 import com.haskell.amghud.ble.BLEService
 import com.haskell.amghud.ble.BLEServiceInterface
 import com.haskell.amghud.ble.FakeBLEService
+import com.haskell.amghud.views.BlueShadeHigh
+import com.haskell.amghud.views.BlueShadeLow
 import com.haskell.amghud.views.CircularGaugeView
 import com.haskell.amghud.views.GearSelectorView
+import com.haskell.amghud.views.LeverView
+import com.haskell.amghud.views.PurpleShadeHigh
+import com.haskell.amghud.views.PurpleShadeLow
+import com.haskell.amghud.views.RedShadeHigh
+import com.haskell.amghud.views.RedShadeLow
 import com.haskell.amghud.views.TractionView
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -36,7 +43,10 @@ class MainActivity : AppCompatActivity() {
     private lateinit var bleReceiver: BLEBroadcastReceiverForViewModel
     private lateinit var circularGaugeView: CircularGaugeView
     private lateinit var tractionView: TractionView
+    private lateinit var tractionViewForModeT: TractionView
     private lateinit var gearSelectorView: GearSelectorView
+    private lateinit var brakeView: LeverView
+    private lateinit var throttleView: LeverView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -57,7 +67,15 @@ class MainActivity : AppCompatActivity() {
         setupStatusTextView = findViewById(R.id.setupStatusTextView)
         circularGaugeView = findViewById(R.id.circularGaugeView)
         tractionView = findViewById(R.id.tractionView)
+        tractionViewForModeT = findViewById(R.id.tractionViewForModeT)
         gearSelectorView = findViewById(R.id.gearSelectorView)
+        brakeView = findViewById(R.id.leverBrakeView)
+        throttleView = findViewById(R.id.leverThrottleView)
+        brakeView.setConfig(RedShadeHigh, RedShadeLow, 300, 500, 0.2f)
+        throttleView.setConfig(BlueShadeHigh, BlueShadeLow, 300, 500, 0.2f)
+
+        tractionView.setSizeProportion(0.3f)
+        tractionViewForModeT.setSizeProportion(0.6f)
 
         bleViewModel = ViewModelProvider(this)[BLEViewModel::class.java]
         bleReceiver = BLEBroadcastReceiverForViewModel(bleViewModel)
@@ -74,7 +92,23 @@ class MainActivity : AppCompatActivity() {
                 circularGaugeView.setCumulatedPower(it.cumulatedPower)
                 tractionView.setLeftMotor(it.leftMotor)
                 tractionView.setRightMotor(it.rightMotor)
+                tractionViewForModeT.setLeftMotor(it.leftMotor)
+                tractionViewForModeT.setRightMotor(it.rightMotor)
                 gearSelectorView.setGearMode(it.mode)
+                throttleView.setValue(it.analogThrottle)
+                brakeView.setValue(it.analogBrake)
+                if(it.mode == GearMode.R){
+                    throttleView.setConfig(PurpleShadeHigh, PurpleShadeLow, 300, 500, 0.2f)
+                }else{
+                    throttleView.setConfig(BlueShadeHigh, BlueShadeLow, 300, 500, 0.2f)
+                }
+                if(it.mode == GearMode.T){
+                    tractionView.setVisibility(false)
+                    tractionViewForModeT.setVisibility(true)
+                }else{
+                    tractionView.setVisibility(true)
+                    tractionViewForModeT.setVisibility(false)
+                }
             }
         }
         BLEPermissionHandler.ensureNecessaryPermissions(this) { permissions ->
@@ -89,7 +123,6 @@ class MainActivity : AppCompatActivity() {
                         override fun onServiceConnected(service: FakeBLEService?) {
                             bleService = service
                         }
-
                         override fun onServiceDisconnected() {
                         }
                     }
@@ -103,7 +136,6 @@ class MainActivity : AppCompatActivity() {
                         override fun onServiceConnected(service: BLEService?) {
                             bleService = service
                         }
-
                         override fun onServiceDisconnected() {
                         }
                     }
@@ -111,10 +143,7 @@ class MainActivity : AppCompatActivity() {
                 serviceConnection.bindService()
             }
         }
-
-
     }
-
 
     @SuppressLint("UnspecifiedRegisterReceiverFlag")
     override fun onResume() {
@@ -122,7 +151,6 @@ class MainActivity : AppCompatActivity() {
         registerReceiver(bleReceiver, IntentFilter().apply {
             addAction(BLEConstants.MESSAGE_RECEIVED)
             addAction(BLEConstants.SETUP_STATUS_CHANGED)
-
         })
     }
 

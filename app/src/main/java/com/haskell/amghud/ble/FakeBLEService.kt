@@ -27,7 +27,7 @@ class FakeBLEService: Service(), BLEServiceInterface {
 
     private var cumulatedPowerCounter = 1
     private var modeCounter = 0
-    private val modeList: List<GearMode> = listOf(GearMode.T, GearMode.P, GearMode.D, GearMode.S, GearMode.S_PLUS, GearMode.S, GearMode.D, GearMode.P )
+    private val modeList: List<GearMode> = listOf(GearMode.T, GearMode.P, GearMode.R, GearMode.D, GearMode.S, GearMode.S_PLUS, GearMode.S, GearMode.D, GearMode.R, GearMode.P)
     override fun onCreate() {
         serviceScope.launch {
             while (true) {
@@ -35,12 +35,20 @@ class FakeBLEService: Service(), BLEServiceInterface {
                     val balanceLeft: Float = (2.0f*Math.random()).toFloat()-1.0f
                     val balanceRight: Float = (2.0f*Math.random()).toFloat()-1.0f
                     val cumulatedPower = cumulatedPowerCounter.toFloat()/10.0
+                    val analogBrake = Math.random()*500
+                    val analogThrottle = Math.random()*500
                     sendBroadcast(Intent(BLEConstants.MESSAGE_RECEIVED).putExtra("MESSAGE",
                         "CUMULATED_POWER=$cumulatedPower"
                     ))
                     cumulatedPowerCounter = (cumulatedPowerCounter + 1) % 11
-                    sendBroadcast(Intent(BLEConstants.MESSAGE_RECEIVED).putExtra("MESSAGE", "RIGHT_MOTOR="+(255*cumulatedPower*balanceLeft)))
-                    sendBroadcast(Intent(BLEConstants.MESSAGE_RECEIVED).putExtra("MESSAGE", "LEFT_MOTOR="+(255*cumulatedPower*balanceRight)))
+                    sendBroadcast(Intent(BLEConstants.MESSAGE_RECEIVED).putExtra("MESSAGE", "RIGHT_MOTOR=${255*cumulatedPower*balanceLeft}"))
+                    sendBroadcast(Intent(BLEConstants.MESSAGE_RECEIVED).putExtra("MESSAGE", "LEFT_MOTOR=${255*cumulatedPower*balanceRight}"))
+                    sendBroadcast(Intent(BLEConstants.MESSAGE_RECEIVED).putExtra("MESSAGE",
+                        "ANALOG_BRAKE=$analogBrake"
+                    ))
+                    sendBroadcast(Intent(BLEConstants.MESSAGE_RECEIVED).putExtra("MESSAGE",
+                        "ANALOG_THROTTLE=$analogThrottle"
+                    ))
                 }
                 delay(500) // 500 milliseconds
             }

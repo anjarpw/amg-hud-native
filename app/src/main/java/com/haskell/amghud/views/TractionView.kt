@@ -29,12 +29,17 @@ class TractionView(context: Context, attrs: AttributeSet?) : BaseView(context, a
     private val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
     private val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
 
-    private val transitioningLeftMotor: TransitioningValue<Float> = generateTransition(0f,0.1f,
+    private val transitioningLeftMotor: TransitioningValue<Float> = generateTransition(0f,0.5f,
         fun (from: Float, target: Float, progress: Float): Float{
             return from + (target - from) * progress
         })
 
-    private val transitioningRightMotor: TransitioningValue<Float> = generateTransition(0f,0.1f,
+    private val transitioningRightMotor: TransitioningValue<Float> = generateTransition(0f,0.5f,
+        fun (from: Float, target: Float, progress: Float): Float{
+            return from + (target - from) * progress
+        })
+
+    private val transitioningAlpha: TransitioningValue<Float> = generateTransition(0f,0.1f,
         fun (from: Float, target: Float, progress: Float): Float{
             return from + (target - from) * progress
         })
@@ -51,8 +56,13 @@ class TractionView(context: Context, attrs: AttributeSet?) : BaseView(context, a
         additionalPaint.xfermode = PorterDuffXfermode(PorterDuff.Mode.ADD)
     }
 
+    private var sizeProportion = 0.3f
+    fun setSizeProportion(sizeRatio: Float){
+        this.sizeProportion= sizeRatio
+    }
+
     override fun doResize(width: Int, height: Int): Size {
-        return Size((width*0.3f).toInt(), height)
+        return Size((width*sizeProportion).toInt(), height)
     }
 
 
@@ -68,9 +78,20 @@ class TractionView(context: Context, attrs: AttributeSet?) : BaseView(context, a
         }
         checkToInvalidate()
     }
+    var isVisible = false
+    fun setVisibility(isVisible: Boolean){
+        if(this.isVisible == isVisible){
+            return
+        }
+        this.isVisible = isVisible
+        val a = if(this.isVisible) 1f else 0f
+        transitioningAlpha.resetTarget(a){ prevTarget ->
+            abs(prevTarget-a) > transitioningAlpha.tolerance
+        }
+    }
 
     private val foregroundScalesCanvasManager = CanvasManager(fun(): Boolean{
-        return false
+        return transitioningAlpha.isUpdateRequired()
     }, fun(canvas: Canvas){
         transformCanvasPerspective(canvas, fun(canvas: Canvas){
             drawForegroundScales(canvas)
@@ -100,8 +121,8 @@ class TractionView(context: Context, attrs: AttributeSet?) : BaseView(context, a
     }
 
 
-    var centerX = 0f
-    var centerY = 0f
+    private var centerX = 0f
+    private var centerY = 0f
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
@@ -109,7 +130,12 @@ class TractionView(context: Context, attrs: AttributeSet?) : BaseView(context, a
     }
 
     override fun doDrawing(canvas: Canvas) {
-        centerX = width * 0.65f
+        alpha = transitioningAlpha.current
+        if(transitioningAlpha.current <= 0f){
+            return
+        }
+        grandProportion = transitioningAlpha.current*0.5f + 0.5f
+        centerX = width * 0.5f
         centerY = height*0.5f//width * 0.5f
 
         transformCanvasPerspective(canvas, fun(canvas: Canvas){
@@ -118,16 +144,15 @@ class TractionView(context: Context, attrs: AttributeSet?) : BaseView(context, a
         foregroundScalesCanvasManager.applyToCanvas(canvas, 0, 0, width, height)
         drawCar(canvas)
     }
-    private val forwardTop = -0.25f
-    private val reverseBottom = 0.25f
-    private fun shader(): Shader {
+    private val scalingSize = 100f
+    private fun whiteShader(): Shader {
         val shader = LinearGradient(
-            0f, width*forwardTop,
-            0f, width*reverseBottom,
+            0f, scalingSize,
+            0f, -scalingSize,
             intArrayOf(
                 Color.parseColor("#00FFFFFF"),
-                Color.parseColor("#11FFFFFF"),
-                Color.parseColor("#11FFFFFF"),
+                Color.parseColor("#22FFFFFF"),
+                Color.parseColor("#22FFFFFF"),
                 Color.parseColor("#00FFFFFF"),
             ),
             floatArrayOf(0f, 0.2f, 0.9f, 1.0f),
@@ -135,13 +160,28 @@ class TractionView(context: Context, attrs: AttributeSet?) : BaseView(context, a
         )
         return shader
     }
+    private fun blackShader(w: Float): Shader {
+        val shader = LinearGradient(
+            0f, 0f,
+            w, 0f,
+            intArrayOf(
+                Color.parseColor("#00000000"),
+                Color.parseColor("#33000000"),
+                Color.parseColor("#FF000000"),
+            ),
+            floatArrayOf(0f, 0.5f, 1.0f),
+            Shader.TileMode.CLAMP
+        )
+        return shader
+    }
+
     private fun forwardShader(value:Float): Shader {
         val shader = LinearGradient(
-            0f, width*forwardTop*value,
+            0f, scalingSize*value,
             0f, 0f,
             intArrayOf(
-                Color.parseColor("#FF00AEFF"),
-                Color.parseColor("#44001E80"),
+                BlueShadeHigh,
+                BlueShadeLow,
             ),
             floatArrayOf(0f,1.0f),
             Shader.TileMode.CLAMP
@@ -150,54 +190,55 @@ class TractionView(context: Context, attrs: AttributeSet?) : BaseView(context, a
     }
     private fun reverseShader(value:Float): Shader {
         val shader = LinearGradient(
-            0f, -width*reverseBottom*value,
+            0f, scalingSize*value,
             0f, 0f,
             intArrayOf(
-                Color.parseColor("#FF8F17FF"),
-                Color.parseColor("#4447008A"),
+                PurpleShadeHigh,
+                PurpleShadeLow,
             ),
             floatArrayOf(0f,1.0f),
             Shader.TileMode.CLAMP
         )
         return shader
     }
+    private val thickness1 = 0.06f
+    private val thickness2 = 0.12f
     private fun drawPowerScale(canvas: Canvas, value: Float){
-        val thickness = 0.06f
-        fillPaint.shader = shader()
-        canvas.drawRect(0f, width*forwardTop, -width*thickness, width*reverseBottom, fillPaint)
+        fillPaint.shader = whiteShader()
+        canvas.drawRect(0f, -scalingSize, -width*thickness1, scalingSize, fillPaint)
         if(value>0){
             fillPaint.shader = forwardShader(value)
         }else{
             fillPaint.shader = reverseShader(value)
         }
-        canvas.drawRect(0f, width*forwardTop*value, -width*thickness, 0f, fillPaint)
+        canvas.drawRect(0f, value*scalingSize, -width*thickness2, 0f, fillPaint)
     }
 
     private fun drawBackgroundScale(canvas: Canvas){
-        val thickness = 0.06f
-        strokePaint.color = Color.parseColor("#88FFFFFF")
         strokePaint.strokeWidth = 2f
+        fillPaint.shader = blackShader(-width*thickness2)
+        canvas.drawRect(0f, -scalingSize, -width*thickness2, scalingSize, fillPaint)
 
-        fun drawScaledLine(index: Int, totalScale: Int,  scaleWidth: Float){
-            val y = width*((index.toFloat()/totalScale)*(forwardTop-reverseBottom)+reverseBottom)
-            canvas.drawLine(0f, y, -width*scaleWidth, y, strokePaint)
-
+        fun drawScaledLine(y: Float, scaleWidth: Float){
+            canvas.drawLine(0f, y*scalingSize, -width*scaleWidth, y*scalingSize, strokePaint)
         }
 
-        strokePaint.color = Color.parseColor("#44FFFFFF")
-        canvas.drawLine(0f, width*forwardTop, 0f, width*reverseBottom, strokePaint)
+        strokePaint.color = Color.parseColor("#22FFFFFF")
         for (i in 0..10) { // i will take values 1, 2, 3, 4, 5
-            drawScaledLine(i, 10, thickness*0.5f)
+            drawScaledLine(-1f+0.2f*i, thickness1*0.5f)
         }
-        drawScaledLine(0, 10, thickness)
-        drawScaledLine(5, 10, thickness)
-        drawScaledLine(10, 10, thickness)
+        strokePaint.color = Color.parseColor("#44FFFFFF")
+        canvas.drawLine(0f, scalingSize, 0f, -scalingSize, strokePaint)
+        drawScaledLine(0f, thickness1)
+        drawScaledLine(-1f,  thickness1)
+        drawScaledLine(1f, thickness1)
 
     }
 
 
     private fun drawForegroundScales(canvas: Canvas){
-        val shift = 0.22f
+        val shift = 0.20f*grandProportion
+        canvas.scale(1f,-width*0.25f/scalingSize)
         canvas.translate(width*shift, 0f)
         drawBackgroundScale(canvas)
         canvas.scale(-1f,1f)
@@ -205,7 +246,8 @@ class TractionView(context: Context, attrs: AttributeSet?) : BaseView(context, a
         drawBackgroundScale(canvas)
     }
     private fun drawPowerDistribution(canvas: Canvas){
-        val shift = 0.22f
+        val shift = 0.20f*grandProportion
+        canvas.scale(1f,-width*0.25f/scalingSize)
         canvas.translate(width*shift, 0f)
         drawPowerScale(canvas, transitioningRightMotor.current/255.0f)
         canvas.scale(-1f,1f)
@@ -216,11 +258,8 @@ class TractionView(context: Context, attrs: AttributeSet?) : BaseView(context, a
     private fun drawForegroundCar(canvas: Canvas){
         canvas.save()
         canvas.translate(centerX, centerY)
-
-
-        val carWidth = width*0.45f
+        val carWidth = width*0.40f
         val carHeight = carWidth*782/651
-
         val rectSource = Rect(0,0, bitmapA!!.width, bitmapA!!.height)
         val rectTarget = Rect(
             (-carWidth*0.5f).toInt(),
@@ -232,12 +271,12 @@ class TractionView(context: Context, attrs: AttributeSet?) : BaseView(context, a
         canvas.restore()
 
     }
+    private var grandProportion = 1f;
     private fun drawCar(canvas: Canvas){
         canvas.save()
         canvas.translate(centerX, centerY)
 
-
-        val carWidth = width*0.45f
+        val carWidth = width*0.4f*grandProportion
         val carHeight = carWidth*782/651
 
         val rectSource = Rect(0,0, bitmapB!!.width, bitmapB!!.height)

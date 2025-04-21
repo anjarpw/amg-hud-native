@@ -3,7 +3,9 @@ package com.haskell.amghud.views
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.Color
 import android.graphics.Paint
+import android.graphics.PorterDuff
 import android.graphics.Rect
 import android.util.AttributeSet
 import android.util.Size
@@ -64,7 +66,7 @@ class CanvasManager(
     val updateCondition: () -> Boolean,
     val onRender: (canvas: Canvas) -> Unit
 ){
-    var bitmap: Bitmap =  Bitmap.createBitmap(1,1, Bitmap.Config.ARGB_8888)
+    private var bitmap: Bitmap =  Bitmap.createBitmap(1,1, Bitmap.Config.ARGB_8888)
     private var canvas: Canvas = Canvas()
     private val sourceRect: Rect = Rect()
     private val targetRect: Rect = Rect()
@@ -80,6 +82,7 @@ class CanvasManager(
     private fun tryUpdate(){
         if(updateCondition() || !hasBeenRendered){
             canvas = Canvas(bitmap)
+            canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR)
             onRender(canvas)
             hasBeenRendered = true
         }
