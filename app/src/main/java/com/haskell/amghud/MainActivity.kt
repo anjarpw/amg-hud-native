@@ -3,6 +3,7 @@ package com.haskell.amghud
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.res.Configuration
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
@@ -10,6 +11,7 @@ import android.view.View
 import android.widget.Button
 import android.widget.TextView
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -26,11 +28,13 @@ import com.haskell.amghud.views.CircularGaugeView
 import com.haskell.amghud.views.GearSelectorView
 import com.haskell.amghud.views.LeverView
 import com.haskell.amghud.views.MiscView
+import com.haskell.amghud.views.OrientationVisibility
 import com.haskell.amghud.views.PurpleShadeHigh
 import com.haskell.amghud.views.PurpleShadeLow
 import com.haskell.amghud.views.RedShadeHigh
 import com.haskell.amghud.views.RedShadeLow
 import com.haskell.amghud.views.TractionView
+import com.haskell.amghud.views.setVisibilityBasedOnOrientation
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
@@ -38,18 +42,10 @@ const val isUsingFakeBLE = true
 
 class MainActivity : AppCompatActivity() {
 
-    private lateinit var setupStatusTextView: TextView
     private var bleService: BLEServiceInterface? = null
-    private lateinit var bleViewModel: BLEViewModel
     private lateinit var bleReceiver: BLEBroadcastReceiverForViewModel
-    private lateinit var circularGaugeView: CircularGaugeView
-    private lateinit var tractionView: TractionView
-    private lateinit var tractionViewForModeT: TractionView
-    private lateinit var gearSelectorView: GearSelectorView
-    private lateinit var brakeView: LeverView
-    private lateinit var throttleView: LeverView
-    private lateinit var miscView: MiscView
 
+    private val bleViewModel: BLEViewModel by viewModels()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -66,21 +62,24 @@ class MainActivity : AppCompatActivity() {
             window.decorView.systemUiVisibility =
                 window.decorView.systemUiVisibility and View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR.inv()
         }
-        setupStatusTextView = findViewById(R.id.setupStatusTextView)
-        circularGaugeView = findViewById(R.id.circularGaugeView)
-        tractionView = findViewById(R.id.tractionView)
-        tractionViewForModeT = findViewById(R.id.tractionViewForModeT)
-        gearSelectorView = findViewById(R.id.gearSelectorView)
-        brakeView = findViewById(R.id.leverBrakeView)
-        throttleView = findViewById(R.id.leverThrottleView)
+        val setupStatusTextView = findViewById<TextView>(R.id.setupStatusTextView)
+        val circularGaugeView = findViewById<CircularGaugeView>(R.id.circularGaugeView)
+        val tractionView = findViewById<TractionView>(R.id.tractionView)
+        val tractionViewForModeT = findViewById<TractionView>(R.id.tractionViewForModeT)
+        val gearSelectorView = findViewById<GearSelectorView>(R.id.gearSelectorView)
+        val brakeView = findViewById<LeverView>(R.id.leverBrakeView)
+        val throttleView = findViewById<LeverView>(R.id.leverThrottleView)
+        val miscView = findViewById<MiscView>(R.id.miscView)
+
+        val notificationBoxView = findViewById<View>(R.id.notificationBoxView)
+        setVisibilityBasedOnOrientation(notificationBoxView, OrientationVisibility.ORIENTATION_VISIBILITY_PORTRAIT_ONLY)
+
         brakeView.setConfig(RedShadeHigh, RedShadeLow, 300, 500, 0.2f)
         throttleView.setConfig(BlueShadeHigh, BlueShadeLow, 300, 500, 0.2f)
-        miscView = findViewById(R.id.miscView)
 
         tractionView.setSizeProportion(0.3f)
         tractionViewForModeT.setSizeProportion(0.6f)
 
-        bleViewModel = ViewModelProvider(this)[BLEViewModel::class.java]
         bleReceiver = BLEBroadcastReceiverForViewModel(bleViewModel)
         val settingsButton = findViewById<Button>(R.id.settingsButton)
 
@@ -101,20 +100,20 @@ class MainActivity : AppCompatActivity() {
                 throttleView.setValue(it.analogThrottle)
                 brakeView.setValue(it.analogBrake)
                 miscView.setSteerRack(it.analogSteer)
-                if(it.mode == GearMode.R){
+                if (it.mode == GearMode.R) {
                     throttleView.setConfig(PurpleShadeHigh, PurpleShadeLow, 300, 500, 0.2f)
-                }else{
+                } else {
                     throttleView.setConfig(BlueShadeHigh, BlueShadeLow, 300, 500, 0.2f)
                 }
-                if(it.mode == GearMode.T){
+                if (it.mode == GearMode.T) {
                     tractionView.setVisibility(false)
                     tractionViewForModeT.setVisibility(true)
-                }else{
+                } else {
                     tractionView.setVisibility(true)
                     tractionViewForModeT.setVisibility(false)
                 }
-                miscView.setBrakeIndicator(it.analogBrake>300)
-                miscView.setPowerIndicator(it.analogThrottle>300)
+                miscView.setBrakeIndicator(it.analogBrake > 300)
+                miscView.setPowerIndicator(it.analogThrottle > 300)
 
             }
         }
@@ -130,6 +129,7 @@ class MainActivity : AppCompatActivity() {
                         override fun onServiceConnected(service: FakeBLEService?) {
                             bleService = service
                         }
+
                         override fun onServiceDisconnected() {
                         }
                     }
@@ -143,6 +143,7 @@ class MainActivity : AppCompatActivity() {
                         override fun onServiceConnected(service: BLEService?) {
                             bleService = service
                         }
+
                         override fun onServiceDisconnected() {
                         }
                     }
@@ -150,6 +151,13 @@ class MainActivity : AppCompatActivity() {
                 serviceConnection.bindService()
             }
         }
+    }
+
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        val notificationBoxView = findViewById<View>(R.id.notificationBoxView)
+        setVisibilityBasedOnOrientation(notificationBoxView, OrientationVisibility.ORIENTATION_VISIBILITY_PORTRAIT_ONLY)
     }
 
     @SuppressLint("UnspecifiedRegisterReceiverFlag")

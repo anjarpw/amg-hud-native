@@ -1,7 +1,7 @@
 package com.haskell.amghud
 
 
-interface ITransitioningUpdate{
+interface ITransitioningUpdate {
     fun update();
     fun isUpdateRequired(): Boolean
 }
@@ -11,7 +11,7 @@ abstract class TransitioningValue<T>(
     initialValue: T,
     var fractionSpeed: Float,
     var tolerance: Float = 0.01f
-): ITransitioningUpdate {
+) : ITransitioningUpdate {
     var progress: Float = 0f
         private set
 
@@ -27,7 +27,7 @@ abstract class TransitioningValue<T>(
         }
 
     fun resetTarget(value: T, canReset: ((previousTarget: T) -> Boolean)? = null) {
-        if(canReset != null && !canReset(target)){
+        if (canReset != null && !canReset(target)) {
             return
         }
         from = current
@@ -37,12 +37,12 @@ abstract class TransitioningValue<T>(
 
     override fun update() {
         progress += (1f - progress) * fractionSpeed
-        if(!isUpdateRequired()){
+        if (!isUpdateRequired()) {
             progress = 1.0f
         }
     }
 
-    override fun isUpdateRequired(): Boolean{
+    override fun isUpdateRequired(): Boolean {
         return progress < 1.0f - tolerance
     }
 

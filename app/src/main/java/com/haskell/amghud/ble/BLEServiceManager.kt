@@ -12,7 +12,11 @@ object BLEServiceManager {
     private var bleService: BLEService? = null
     private val boundActivities = mutableSetOf<AppCompatActivity>()
 
-    fun bindToBleService(activity: AppCompatActivity, onBound: (BLEService) -> Unit, onUnbound: () -> Unit) {
+    fun bindToBleService(
+        activity: AppCompatActivity,
+        onBound: (BLEService) -> Unit,
+        onUnbound: () -> Unit
+    ) {
         val connection = object : ServiceConnection {
             override fun onServiceConnected(className: ComponentName, service: IBinder) {
                 val binder = service as BLEService.LocalBinder
@@ -37,7 +41,7 @@ object BLEServiceManager {
 
     fun unbindFromBleService(activity: AppCompatActivity) {
         if (boundActivities.contains(activity)) {
-            activity.unbindService(object : ServiceConnection{
+            activity.unbindService(object : ServiceConnection {
                 override fun onServiceConnected(name: ComponentName?, service: IBinder?) {}
                 override fun onServiceDisconnected(name: ComponentName?) {}
             })

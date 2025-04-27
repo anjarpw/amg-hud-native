@@ -10,7 +10,11 @@ import androidx.core.content.ContextCompat
 object BLEPermissionUtils {
 
     private val bluetoothPermissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-        arrayOf(Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT, Manifest.permission.ACCESS_FINE_LOCATION)
+        arrayOf(
+            Manifest.permission.BLUETOOTH_SCAN,
+            Manifest.permission.BLUETOOTH_CONNECT,
+            Manifest.permission.ACCESS_FINE_LOCATION
+        )
     } else {
         arrayOf(Manifest.permission.BLUETOOTH, Manifest.permission.ACCESS_FINE_LOCATION)
     }
@@ -32,9 +36,12 @@ object BLEPermissionUtils {
     }
 
     private fun requestPermissions(activity: Activity) {
-        ActivityCompat.requestPermissions(activity, bluetoothPermissions, REQUEST_BLUETOOTH_PERMISSIONS)
+        ActivityCompat.requestPermissions(
+            activity,
+            bluetoothPermissions,
+            REQUEST_BLUETOOTH_PERMISSIONS
+        )
     }
-
 
 
     fun handlePermissionResult(

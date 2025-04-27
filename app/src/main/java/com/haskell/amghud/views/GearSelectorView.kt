@@ -14,15 +14,19 @@ import com.haskell.amghud.TransitioningValue
 import kotlin.math.abs
 
 
-val GearModes: Array<GearMode> = arrayOf(GearMode.T, GearMode.P, GearMode.R, GearMode.D, GearMode.S, GearMode.S_PLUS)
+val GearModes: Array<GearMode> =
+    arrayOf(GearMode.T, GearMode.P, GearMode.R, GearMode.D, GearMode.S, GearMode.S_PLUS)
 
-class GearSelectorView(context: Context, attrs: AttributeSet?) : BaseView(context, attrs)  {
+class GearSelectorView(context: Context, attrs: AttributeSet?) : BaseView(context, attrs) {
 
     private var typeface: Typeface? = null
 
     init {
         try {
-            typeface = Typeface.createFromAsset(context.assets, "Exo-BoldItalic.ttf") // Replace with your font file
+            typeface = Typeface.createFromAsset(
+                context.assets,
+                "Exo-BoldItalic.ttf"
+            ) // Replace with your font file
             typeface = Typeface.create(typeface, Typeface.ITALIC)
         } catch (e: Exception) {
             e.printStackTrace()
@@ -30,21 +34,22 @@ class GearSelectorView(context: Context, attrs: AttributeSet?) : BaseView(contex
         }
     }
 
-    private val transitioningGearSelectorIndex: TransitioningValue<Float> = generateTransition(0.0f, 0.1f,
-        fun (from: Float, target: Float, progress: Float): Float {
-           return from + (target - from) * progress
-        })
+    private val transitioningGearSelectorIndex: TransitioningValue<Float> =
+        generateTransition(0.0f, 0.1f,
+            fun(from: Float, target: Float, progress: Float): Float {
+                return from + (target - from) * progress
+            })
 
-    fun setGearMode(value: GearMode){
+    fun setGearMode(value: GearMode) {
         val index = GearModes.indexOf(value)
         transitioningGearSelectorIndex.resetTarget(index.toFloat()) { prevTarget ->
-            abs(prevTarget-index) > transitioningGearSelectorIndex.tolerance
+            abs(prevTarget - index) > transitioningGearSelectorIndex.tolerance
         }
         checkToInvalidate()
     }
 
     override fun doResize(width: Int, height: Int): Size {
-        return Size((width*0.08f).toInt(), height)
+        return Size((width * 0.08f).toInt(), height)
     }
 
     private val textPaint = Paint()
@@ -59,21 +64,23 @@ class GearSelectorView(context: Context, attrs: AttributeSet?) : BaseView(contex
         textPaint.color = Color.WHITE
 
         val h = height
-        val fontSize = h/15
-        val gapSize = fontSize*1.1f
-        val top = (height-gapSize*7f)/2f
+        val fontSize = h / 15
+        val gapSize = fontSize * 1.1f
+        val top = (height - gapSize * 7f) / 2f
         for ((index, gearMode) in GearModes.withIndex()) {
             val text = gearMode.stringAlias
             val intensity = computeActiveIntensity(index)
 
-            textPaint.textSize = (intensity*0.4f + 0.6f)*fontSize
-            textPaint.alpha = 255-((1f-intensity)*200).toInt()
+            textPaint.textSize = (intensity * 0.4f + 0.6f) * fontSize
+            textPaint.alpha = 255 - ((1f - intensity) * 200).toInt()
             textPaint.getTextBounds(text, 0, text.length, textBound)
 
-            canvas.drawText(text,
+            canvas.drawText(
+                text,
                 30f,
-                index*gapSize + top + textBound.height()*0.5f,
-                textPaint)
+                index * gapSize + top + textBound.height() * 0.5f,
+                textPaint
+            )
         }
         val path = Path()
         path.moveTo(0f, -12f)
@@ -81,15 +88,15 @@ class GearSelectorView(context: Context, attrs: AttributeSet?) : BaseView(contex
         path.lineTo(0f, 12f)
         path.close()
         canvas.save()
-        canvas.translate(0f,transitioningGearSelectorIndex.current*gapSize + top)
+        canvas.translate(0f, transitioningGearSelectorIndex.current * gapSize + top)
         canvas.drawPath(path, redPaint)
         canvas.restore()
     }
 
 
-    private fun computeActiveIntensity(index: Int): Float{
-        var intensity = 1f-abs(index-transitioningGearSelectorIndex.current)
-        if(intensity<0){
+    private fun computeActiveIntensity(index: Int): Float {
+        var intensity = 1f - abs(index - transitioningGearSelectorIndex.current)
+        if (intensity < 0) {
             intensity = 0f
         }
         return intensity

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="BaseView">
+        <attr name="orientationVisibility" format="enum">
+            <enum name="portrait_only" value="1" />
+            <enum name="landscape_only" value="2" />
+            <enum name="both" value="0" />
+        </attr>
+    </declare-styleable>
+</resources>

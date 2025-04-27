@@ -1,4 +1,5 @@
 package com.haskell.amghud.views
+
 import android.graphics.Color
 
 val DarkShade = Color.parseColor("#FF335599")

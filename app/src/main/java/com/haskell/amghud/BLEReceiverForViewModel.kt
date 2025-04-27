@@ -17,24 +17,31 @@ fun splitString(input: String): Pair<String?, String?> {
 }
 
 
-class BLEBroadcastReceiverForViewModel(private val bleViewModel: BLEViewModel) : BroadcastReceiver() {
+class BLEBroadcastReceiverForViewModel(private val bleViewModel: BLEViewModel) :
+    BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
 
-        when(intent.action){
+        when (intent.action) {
             BLEConstants.MESSAGE_RECEIVED -> {
                 val plainMessage = intent.getStringExtra("MESSAGE")
-                if(plainMessage != null){
-                    val (key,value) = splitString(plainMessage)
-                    if(key != null && value != null){
-                        bleViewModel.processIntent(BLEIntent.UpdateMessage(key.trim(), value.trim()))
+                if (plainMessage != null) {
+                    val (key, value) = splitString(plainMessage)
+                    if (key != null && value != null) {
+                        bleViewModel.processIntent(
+                            BLEIntent.UpdateMessage(
+                                key.trim(),
+                                value.trim()
+                            )
+                        )
                     }
                 }
 
             }
+
             BLEConstants.SETUP_STATUS_CHANGED -> {
                 val status = intent.getEnumExtra<BLESetupStatus>("STATUS")
-                if(status != null){
+                if (status != null) {
                     bleViewModel.processIntent(BLEIntent.UpdateSetupStatus(status, hashMapOf()))
                 }
             }

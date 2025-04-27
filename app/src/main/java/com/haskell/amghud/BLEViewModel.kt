@@ -15,16 +15,20 @@ data class BLEState(
     val scanResults: Map<String, String> = hashMapOf(), // or your BLE device data type
     val cumulatedPower: Float = 0.0f,
     val mode: GearMode = GearMode.P,
-    val setupStatus: String = "",
+    val setupStatus: String = "RESET",
     val leftMotor: Float = 0.0f,
     val rightMotor: Float = 0.0f,
     val analogThrottle: Float = 0.0f,
     val analogBrake: Float = 0.0f,
     val analogSteer: Float = 0.0f
 )
+
 sealed class BLEIntent {
     data class UpdateMessage(val key: String, val value: String) : BLEIntent()
-    data class UpdateSetupStatus(val setupStatus: BLESetupStatus, val extraMessages: Map<String, String>): BLEIntent()
+    data class UpdateSetupStatus(
+        val setupStatus: BLESetupStatus,
+        val extraMessages: Map<String, String>
+    ) : BLEIntent()
 }
 
 class BLEViewModel : ViewModel() {
@@ -36,35 +40,40 @@ class BLEViewModel : ViewModel() {
         viewModelScope.launch {
             when (intent) {
                 is BLEIntent.UpdateSetupStatus -> {
-                    when(intent.setupStatus){
+                    when (intent.setupStatus) {
                         BLESetupStatus.CONNECTED -> _state.value = _state.value.copy(
                             isConnected = true,
                             setupStatus = "Connected"
                         )
+
                         BLESetupStatus.CONNECTION_FAILED -> _state.value = _state.value.copy(
                             isConnected = false,
                             isServiceDiscovered = false,
                             setupStatus = "Connection Failed"
                         )
+
                         BLESetupStatus.DISCONNECTED -> _state.value = _state.value.copy(
                             isConnected = false,
                             isServiceDiscovered = false,
                             setupStatus = "Disconnected"
                         )
 
-                        BLESetupStatus.SCAN_FAILED-> _state.value = _state.value.copy(
+                        BLESetupStatus.SCAN_FAILED -> _state.value = _state.value.copy(
                             isDeviceFound = false,
                             isConnected = false,
                             isServiceDiscovered = false,
                             setupStatus = "Scanning Failed"
                         )
+
                         BLESetupStatus.SCAN_STOPPED -> _state.value = _state.value.copy(
                             setupStatus = "Stop Scanning"
                         )
+
                         BLESetupStatus.SERVICE_DISCOVERED -> _state.value = _state.value.copy(
                             isServiceDiscovered = true,
                             setupStatus = "Service is discovered"
                         )
+
                         BLESetupStatus.SCANNED_AND_FOUND -> _state.value = _state.value.copy(
                             isDeviceFound = true,
                             setupStatus = "Device Target Found"
@@ -78,6 +87,7 @@ class BLEViewModel : ViewModel() {
                     }
 
                 }
+
                 is BLEIntent.UpdateMessage -> {
                     val updatedMap = _state.value.scanResults.toMutableMap()
                     updatedMap[intent.key] = intent.value
@@ -88,7 +98,8 @@ class BLEViewModel : ViewModel() {
                     var analogBrake = _state.value.analogBrake
                     var analogThrottle = _state.value.analogThrottle
                     var analogSteer = _state.value.analogSteer
-                    when(intent.key){
+                    var setupStatus = _state.value.setupStatus
+                    when (intent.key) {
                         "CUMULATED_POWER" -> cumulatedPower = intent.value.toFloat()
                         "MODE" -> mode = GearMode.fromString(intent.value) ?: GearMode.P
                         "LEFT_MOTOR" -> leftMotor = intent.value.toFloat()
@@ -105,8 +116,8 @@ class BLEViewModel : ViewModel() {
                         rightMotor = rightMotor,
                         analogSteer = analogSteer,
                         analogBrake = analogBrake,
-                        analogThrottle = analogThrottle
-
+                        analogThrottle = analogThrottle,
+                        setupStatus = setupStatus
                     )
                 }
             }

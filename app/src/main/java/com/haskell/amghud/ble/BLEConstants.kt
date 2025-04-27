@@ -11,7 +11,7 @@ inline fun <reified T : Enum<T>> Intent.putEnumExtra(key: String, victim: T): In
 inline fun <reified T : Enum<T>> Intent.getEnumExtra(key: String): T? {
     val i = getIntExtra(key, -1)
 
-    if(i<0){
+    if (i < 0) {
         return null
     }
     val data = T::class.java.enumConstants?.get(i)

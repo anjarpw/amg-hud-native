@@ -10,21 +10,29 @@ import androidx.core.content.ContextCompat
 object BLEPermissionHandler {
 
     private val bluetoothPermissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-        arrayOf(Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT, Manifest.permission.ACCESS_FINE_LOCATION)
+        arrayOf(
+            Manifest.permission.BLUETOOTH_SCAN,
+            Manifest.permission.BLUETOOTH_CONNECT,
+            Manifest.permission.ACCESS_FINE_LOCATION
+        )
     } else {
         arrayOf(Manifest.permission.BLUETOOTH, Manifest.permission.ACCESS_FINE_LOCATION)
     }
 
-    fun ensureNecessaryPermissions(activity: AppCompatActivity, callback: (Map<String, Boolean>) -> Unit) {
+    fun ensureNecessaryPermissions(
+        activity: AppCompatActivity,
+        callback: (Map<String, Boolean>) -> Unit
+    ) {
 
         val permissionsToRequest = bluetoothPermissions.filter {
             ContextCompat.checkSelfPermission(activity, it) != PackageManager.PERMISSION_GRANTED
         }.toTypedArray()
 
         if (permissionsToRequest.isNotEmpty()) {
-            val requestPermissionLauncher = activity.registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
-                callback.invoke(permissions)
-            }
+            val requestPermissionLauncher =
+                activity.registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
+                    callback.invoke(permissions)
+                }
             requestPermissionLauncher.launch(permissionsToRequest)
         } else {
             // All permissions are already granted

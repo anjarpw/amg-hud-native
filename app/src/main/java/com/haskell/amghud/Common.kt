@@ -1,7 +1,6 @@
 package com.haskell.amghud
 
 
-
 enum class GearMode(val stringAlias: String) {
     T("T"),
     P("P"),

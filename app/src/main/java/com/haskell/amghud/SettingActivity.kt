@@ -2,13 +2,16 @@ package com.haskell.amghud
 
 import android.annotation.SuppressLint
 import android.content.IntentFilter
+import android.graphics.Color
 import android.os.Bundle
 import android.widget.Button
 import android.widget.TextView
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import com.haskell.amghud.ble.BLEConstants
@@ -20,59 +23,96 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
 class SettingActivity : AppCompatActivity() {
-    private lateinit var scanButton: Button
-    private lateinit var connectButton: Button
-    private lateinit var disconnectButton: Button
-    private lateinit var resetButton: Button
-    private lateinit var setupStatusTextView: TextView
-    private lateinit var scanResultsTextView: TextView
     private var bleService: BLEServiceInterface? = null
-    private lateinit var bleViewModel: BLEViewModel
+    private val bleViewModel: BLEViewModel by viewModels()
     private lateinit var bleReceiver: BLEBroadcastReceiverForViewModel
+
+    private val userPreferencesViewModel: UserPreferencesViewModel by viewModels {
+        object : ViewModelProvider.Factory {
+            override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                if (modelClass.isAssignableFrom(UserPreferencesViewModel::class.java)) {
+                    return UserPreferencesViewModel(applicationContext) as T
+                }
+                throw IllegalArgumentException("Unknown ViewModel class")
+            }
+        }
+    }
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContentView(R.layout.activity_setting)
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.setting)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
+        window.navigationBarColor = Color.BLACK
 
-        scanButton = findViewById(R.id.scanButton)
-        connectButton = findViewById(R.id.connectButton)
-        disconnectButton = findViewById(R.id.disconnectButton)
-        resetButton = findViewById(R.id.resetButton)
-        setupStatusTextView = findViewById(R.id.setupStatusTextView)
-        scanResultsTextView = findViewById(R.id.scanResultsTextView)
+        val scanButton = findViewById<Button>(R.id.scanButton)
+        val toggleConnectionButton = findViewById<Button>(R.id.toggleConnectionButton)
+        val resetButton = findViewById<Button>(R.id.resetButton)
+        val setupStatusTextView = findViewById<TextView>(R.id.setupStatusTextView)
+        val scanResultsTextView = findViewById<TextView>(R.id.scanResultsTextView)
+        val closeButton = findViewById<Button>(R.id.backButton)
+        val nameEditText =
+            findViewById<TextView>(R.id.nameEditText) // Initialize the EditText using its ID
+        val saveButton = findViewById<Button>(R.id.saveButton)
+        var isBluetoothConnected = false
 
-        bleViewModel = ViewModelProvider(this)[BLEViewModel::class.java]
         bleReceiver = BLEBroadcastReceiverForViewModel(bleViewModel)
 
-        scanButton.setOnClickListener{
+        lifecycleScope.launch {
+            bleViewModel.state.collectLatest {
+                isBluetoothConnected = it.isConnected
+                toggleConnectionButton.text = if (isBluetoothConnected) "Disconnect" else "Connect"
+            }
+        }
+
+        scanButton.setOnClickListener {
             bleService?.startScanAndConnect()
         }
-        connectButton.setOnClickListener{
-            bleService?.connectToDevice()
+        toggleConnectionButton.setOnClickListener {
+            if(bleService == null){
+                return@setOnClickListener
+            }
+
+            if(isBluetoothConnected){
+                bleService?.disconnectDevice()
+            }else{
+                bleService?.connectToDevice()
+
+            }
         }
-        disconnectButton.setOnClickListener{
-            bleService?.disconnectDevice()
-        }
-        resetButton.setOnClickListener{
+        resetButton.setOnClickListener {
             bleService?.reset()
         }
-        val closeButton = findViewById<Button>(R.id.closeButton)
 
         closeButton.setOnClickListener {
             finish()
         }
+
+
+        // Observe the name StateFlow from the ViewModel
+        lifecycleScope.launch {
+            userPreferencesViewModel.name.collect { savedName ->
+                nameEditText.setText(savedName)
+            }
+        }
+
+        saveButton.setOnClickListener {
+            val currentName = nameEditText.text.toString() // Get the text entered by the user
+            userPreferencesViewModel.saveName(currentName)
+        }
+
         lifecycleScope.launch {
             bleViewModel.state.collectLatest {
                 setupStatusTextView.text = it.setupStatus
-                scanResultsTextView.text = it.scanResults.entries.joinToString(separator = "\n") { (key, value) ->
-                    "$key = $value"
-                }
+                scanResultsTextView.text =
+                    it.scanResults.entries.joinToString(separator = "\n") { (key, value) ->
+                        "$key = $value"
+                    }
             }
         }
 
@@ -112,6 +152,7 @@ class SettingActivity : AppCompatActivity() {
             }
         }
     }
+
     @SuppressLint("UnspecifiedRegisterReceiverFlag")
     override fun onResume() {
         super.onResume()
