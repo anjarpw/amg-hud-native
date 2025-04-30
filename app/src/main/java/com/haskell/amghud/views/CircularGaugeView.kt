@@ -12,6 +12,7 @@ import android.graphics.Shader
 import android.graphics.SweepGradient
 import android.graphics.Typeface
 import android.util.AttributeSet
+import androidx.core.graphics.alpha
 import com.haskell.amghud.GearMode
 import com.haskell.amghud.TransitioningValue
 import kotlin.math.abs
@@ -29,7 +30,8 @@ data class GaugeDisplayedConfig(
     var limit: Float = 0.0f,
     var circularSize: Float = 0.0f,
     var backgroundCircularSize: Float = 1.0f,
-    var needleType: NeedleType = NeedleType.FULL
+    var needleType: NeedleType = NeedleType.FULL,
+    var alpha: Float = 1f
 )
 
 enum class NeedleType {
@@ -54,7 +56,8 @@ val DefaultGearP = GaugeDisplayedConfig(
     limit = 0f,
     circularSize = 0.75f,
     backgroundCircularSize = 0.9f,
-    needleType = NeedleType.FULL
+    needleType = NeedleType.FULL,
+    alpha = 1f,
 )
 val gearConfigMap: Map<GearMode, GaugeDisplayedConfig> = mapOf(
     GearMode.T to GaugeDisplayedConfig(
@@ -64,7 +67,8 @@ val gearConfigMap: Map<GearMode, GaugeDisplayedConfig> = mapOf(
         limit = 0f,
         circularSize = 0f,
         backgroundCircularSize = 0.9f,
-        needleType = NeedleType.FULL
+        needleType = NeedleType.FULL,
+        alpha = 0f,
     ),
     GearMode.P to DefaultGearP,
     GearMode.R to GaugeDisplayedConfig(
@@ -74,7 +78,8 @@ val gearConfigMap: Map<GearMode, GaugeDisplayedConfig> = mapOf(
         limit = 4f,
         circularSize = 0.75f,
         backgroundCircularSize = 0.9f,
-        needleType = NeedleType.FULL
+        needleType = NeedleType.FULL,
+        alpha = 1f,
     ),
     GearMode.D to GaugeDisplayedConfig(
         mode = GearMode.D,
@@ -83,7 +88,8 @@ val gearConfigMap: Map<GearMode, GaugeDisplayedConfig> = mapOf(
         limit = 4f,
         circularSize = 0.75f,
         backgroundCircularSize = 0.9f,
-        needleType = NeedleType.FULL
+        needleType = NeedleType.FULL,
+        alpha = 1f,
     ),
     GearMode.S to GaugeDisplayedConfig(
         mode = GearMode.S,
@@ -92,7 +98,8 @@ val gearConfigMap: Map<GearMode, GaugeDisplayedConfig> = mapOf(
         limit = 6f,
         circularSize = 0.65f,
         backgroundCircularSize = 0.70f,
-        needleType = NeedleType.FULL
+        needleType = NeedleType.FULL,
+        alpha = 1f,
     ),
     GearMode.S_PLUS to GaugeDisplayedConfig(
         mode = GearMode.S_PLUS,
@@ -101,7 +108,8 @@ val gearConfigMap: Map<GearMode, GaugeDisplayedConfig> = mapOf(
         limit = 9f,
         circularSize = 0.5f,
         backgroundCircularSize = 0.65f,
-        needleType = NeedleType.FULL
+        needleType = NeedleType.FULL,
+        alpha = 1f,
     )
 )
 
@@ -120,6 +128,7 @@ class CircularGaugeView(context: Context, attrs: AttributeSet?) : BaseView(conte
         ): GaugeDisplayedConfig {
             return GaugeDisplayedConfig(
                 mode = target.mode,
+                alpha = from.alpha + (target.alpha - from.alpha) * progress,
                 needleType = target.needleType,
                 min = from.min + (target.min - from.min) * progress,
                 max = from.max + (target.max - from.max) * progress,
@@ -200,7 +209,7 @@ class CircularGaugeView(context: Context, attrs: AttributeSet?) : BaseView(conte
     private fun radialBlackShader(radius1: Float, radius2: Float): Shader {
         return RadialGradient(
             0f, 0f, radius2, intArrayOf(
-                Color.parseColor("#AA000000"),
+                Color.BLACK,
                 Color.TRANSPARENT
             ),
             floatArrayOf(radius1 / radius2, 1f),
@@ -284,7 +293,7 @@ class CircularGaugeView(context: Context, attrs: AttributeSet?) : BaseView(conte
 
 
             val blackShadePaint = Paint()
-            blackShadePaint.shader = radialBlackShader(radius - 180, radius - 50)
+            blackShadePaint.shader = radialBlackShader(radius - 200, radius - 50)
             blackShadePaint.style = Paint.Style.FILL
 
             val redPaint = Paint()
@@ -424,15 +433,20 @@ class CircularGaugeView(context: Context, attrs: AttributeSet?) : BaseView(conte
 
         if (transitioningMode.current.circularSize > 0) {
             drawBackgroundNeedle(canvas)
+            val alphaSensitivePaint = Paint()
+            alphaSensitivePaint.alpha = (transitioningMode.current.alpha*255).toInt()
+
             backgroundCanvasManager.applyToCanvas(
                 canvas,
                 -gaugePosition.tx.toInt(),
                 -gaugePosition.ty.toInt(),
                 -gaugePosition.tx.toInt() + width,
-                -gaugePosition.ty.toInt() + height
+                -gaugePosition.ty.toInt() + height,
+                alphaSensitivePaint
             )
             drawNeedle(canvas)
         }
+
         drawMode(canvas)
         canvas.restore()
     }
@@ -560,21 +574,24 @@ class CircularGaugeView(context: Context, attrs: AttributeSet?) : BaseView(conte
         val mode = transitioningMode.current
         val cumulatedPower = transitioningCumulatedPower.current.coerceIn(mode.min, mode.limit)
         val radius = gaugePosition.innerRadius
+        val reds = intArrayOf(
+            setColorAlpha(Color.RED, 0),
+            setColorAlpha(Color.RED, (25*mode.alpha).toInt()),
+            setColorAlpha(Color.RED, (200*mode.alpha).toInt()),
+            setColorAlpha(Color.RED, (255*mode.alpha).toInt()),
+            setColorAlpha(Color.RED, 0),
+        )
+
         val radialGradient = RadialGradient(
             0f,
             0f,
             radius - 20,
-            intArrayOf(
-                Color.parseColor("#00FF0000"),
-                Color.parseColor("#FFFF0000"),
-                Color.parseColor("#FFFF0000"),
-                Color.parseColor("#44FF0000"),
-
-                ), // Colors in the gradient
+            reds, // Colors in the gradient
             floatArrayOf(
                 0f,
-                0.80f,
-                0.90f,
+                0.30f,
+                0.50f,
+                0.70f,
                 1f
             ), // Relative positions of the colors (null for evenly distributed)
             Shader.TileMode.CLAMP // Tile mode (CLAMP, REPEAT, MIRROR)

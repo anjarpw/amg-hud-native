@@ -18,7 +18,6 @@ import com.haskell.amghud.ble.BLEConstants
 import com.haskell.amghud.ble.BLEPermissionHandler
 import com.haskell.amghud.ble.BLEService
 import com.haskell.amghud.ble.BLEServiceInterface
-import com.haskell.amghud.ble.FakeBLEService
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
@@ -38,6 +37,8 @@ class SettingActivity : AppCompatActivity() {
         }
     }
 
+    private lateinit var serviceConnection: GenericServiceConnection<BLEService>
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -50,7 +51,12 @@ class SettingActivity : AppCompatActivity() {
         }
         window.navigationBarColor = Color.BLACK
 
+
+        val app = applicationContext as AmgHudApplication
+        bleViewModel.onAction(BLEViewModelActions.ForwardState(app.bleState))
+
         val scanButton = findViewById<Button>(R.id.scanButton)
+        val mockButton = findViewById<Button>(R.id.mockButton)
         val toggleConnectionButton = findViewById<Button>(R.id.toggleConnectionButton)
         val resetButton = findViewById<Button>(R.id.resetButton)
         val setupStatusTextView = findViewById<TextView>(R.id.setupStatusTextView)
@@ -69,19 +75,22 @@ class SettingActivity : AppCompatActivity() {
                 toggleConnectionButton.text = if (isBluetoothConnected) "Disconnect" else "Connect"
             }
         }
+        mockButton.setOnClickListener {
+            bleService?.runDemo()
+        }
 
         scanButton.setOnClickListener {
             bleService?.startScanAndConnect()
         }
         toggleConnectionButton.setOnClickListener {
-            if(bleService == null){
+            if(this.bleService == null){
                 return@setOnClickListener
             }
 
             if(isBluetoothConnected){
-                bleService?.disconnectDevice()
+                this.bleService?.disconnectDevice()
             }else{
-                bleService?.connectToDevice()
+                this.bleService?.connectToDevice()
 
             }
         }
@@ -121,35 +130,15 @@ class SettingActivity : AppCompatActivity() {
             if (permissions.any { !it.value }) {
                 return@ensureNecessaryPermissions
             }
-            if (isUsingFakeBLE) {
-                val fakeServiceConnection = GenericServiceConnection(
-                    this,
-                    FakeBLEService::class.java,
-                    object : GenericServiceConnection.ServiceConnectionListener<FakeBLEService?> {
-                        override fun onServiceConnected(service: FakeBLEService?) {
-                            bleService = service
-                        }
-
-                        override fun onServiceDisconnected() {
-                        }
-                    }
-                )
-                fakeServiceConnection.bindService()
-            } else {
-                val serviceConnection = GenericServiceConnection(
-                    this,
-                    BLEService::class.java,
-                    object : GenericServiceConnection.ServiceConnectionListener<BLEService?> {
-                        override fun onServiceConnected(service: BLEService?) {
-                            bleService = service
-                        }
-
-                        override fun onServiceDisconnected() {
-                        }
-                    }
-                )
-                serviceConnection.bindService()
-            }
+            serviceConnection = GenericServiceConnection(
+                this,
+                BLEService::class.java,
+                { service ->
+                    this.bleService = service
+                },
+                {}
+            )
+            serviceConnection.bindService()
         }
     }
 
@@ -159,12 +148,19 @@ class SettingActivity : AppCompatActivity() {
         registerReceiver(bleReceiver, IntentFilter().apply {
             addAction(BLEConstants.MESSAGE_RECEIVED)
             addAction(BLEConstants.SETUP_STATUS_CHANGED)
-
         })
+        val app = applicationContext as AmgHudApplication
+        bleViewModel.onAction(BLEViewModelActions.ForwardState(app.bleState))
     }
 
     override fun onPause() {
         super.onPause()
         unregisterReceiver(bleReceiver)
+        val app = applicationContext as AmgHudApplication
+        app.updateBLEState(bleViewModel.state.value)
+    }
+    override fun onStop() {
+        super.onStop()
+        serviceConnection.unbindService()
     }
 }

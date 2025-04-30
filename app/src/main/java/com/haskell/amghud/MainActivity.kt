@@ -15,6 +15,7 @@ import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import com.haskell.amghud.ble.BLEConstants
@@ -38,14 +39,25 @@ import com.haskell.amghud.views.setVisibilityBasedOnOrientation
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
-const val isUsingFakeBLE = true
-
 class MainActivity : AppCompatActivity() {
-
-    private var bleService: BLEServiceInterface? = null
     private lateinit var bleReceiver: BLEBroadcastReceiverForViewModel
-
     private val bleViewModel: BLEViewModel by viewModels()
+
+    private val userPreferencesViewModel: UserPreferencesViewModel by viewModels {
+        object : ViewModelProvider.Factory {
+            override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                if (modelClass.isAssignableFrom(UserPreferencesViewModel::class.java)) {
+                    return UserPreferencesViewModel(applicationContext) as T
+                }
+                throw IllegalArgumentException("Unknown ViewModel class")
+            }
+        }
+    }
+    private var bleService: BLEServiceInterface? = null
+
+    private lateinit var serviceConnection: GenericServiceConnection<BLEService>
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -56,6 +68,11 @@ class MainActivity : AppCompatActivity() {
             insets
         }
         window.navigationBarColor = Color.BLACK
+
+        val serviceIntent = Intent(this, BLEService::class.java)
+        if (!BLEService.isRunning) {
+            startService(serviceIntent)  // Start service only if it's not running
+        }
 
         // Optional: ensure nav bar icons are white
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -70,7 +87,8 @@ class MainActivity : AppCompatActivity() {
         val brakeView = findViewById<LeverView>(R.id.leverBrakeView)
         val throttleView = findViewById<LeverView>(R.id.leverThrottleView)
         val miscView = findViewById<MiscView>(R.id.miscView)
-
+        val usernameTextView =
+            findViewById<TextView>(R.id.usernameTextView) // Initialize the EditText using its ID
         val notificationBoxView = findViewById<View>(R.id.notificationBoxView)
         setVisibilityBasedOnOrientation(notificationBoxView, OrientationVisibility.ORIENTATION_VISIBILITY_PORTRAIT_ONLY)
 
@@ -83,6 +101,13 @@ class MainActivity : AppCompatActivity() {
         bleReceiver = BLEBroadcastReceiverForViewModel(bleViewModel)
         val settingsButton = findViewById<Button>(R.id.settingsButton)
 
+        val app = applicationContext as AmgHudApplication
+        bleViewModel.onAction(BLEViewModelActions.ForwardState(app.bleState))
+        lifecycleScope.launch {
+            userPreferencesViewModel.name.collect { savedName ->
+                usernameTextView.setText(savedName)
+            }
+        }
         settingsButton.setOnClickListener {
             val intent = Intent(this, SettingActivity::class.java)
             startActivity(intent)
@@ -114,6 +139,7 @@ class MainActivity : AppCompatActivity() {
                 }
                 miscView.setBrakeIndicator(it.analogBrake > 300)
                 miscView.setPowerIndicator(it.analogThrottle > 300)
+                miscView.setBLEDeviceAlive(it.isBLEDeviceAlive)
 
             }
         }
@@ -121,37 +147,19 @@ class MainActivity : AppCompatActivity() {
             if (permissions.any { !it.value }) {
                 return@ensureNecessaryPermissions
             }
-            if (isUsingFakeBLE) {
-                val fakeServiceConnection = GenericServiceConnection(
-                    this,
-                    FakeBLEService::class.java,
-                    object : GenericServiceConnection.ServiceConnectionListener<FakeBLEService?> {
-                        override fun onServiceConnected(service: FakeBLEService?) {
-                            bleService = service
-                        }
-
-                        override fun onServiceDisconnected() {
-                        }
-                    }
-                )
-                fakeServiceConnection.bindService()
-            } else {
-                val serviceConnection = GenericServiceConnection(
-                    this,
-                    BLEService::class.java,
-                    object : GenericServiceConnection.ServiceConnectionListener<BLEService?> {
-                        override fun onServiceConnected(service: BLEService?) {
-                            bleService = service
-                        }
-
-                        override fun onServiceDisconnected() {
-                        }
-                    }
-                )
-                serviceConnection.bindService()
-            }
+            serviceConnection = GenericServiceConnection(
+                this,
+                BLEService::class.java,
+                { service ->
+                    bleService = service
+                },
+                {}
+            )
+            serviceConnection.bindService()
         }
+
     }
+
 
 
     override fun onConfigurationChanged(newConfig: Configuration) {
@@ -166,11 +174,22 @@ class MainActivity : AppCompatActivity() {
         registerReceiver(bleReceiver, IntentFilter().apply {
             addAction(BLEConstants.MESSAGE_RECEIVED)
             addAction(BLEConstants.SETUP_STATUS_CHANGED)
+            addAction(BLEConstants.BLE_ALIVE)
         })
+        val app = applicationContext as AmgHudApplication
+        bleViewModel.onAction(BLEViewModelActions.ForwardState(app.bleState))
     }
 
     override fun onPause() {
         super.onPause()
         unregisterReceiver(bleReceiver)
+        val app = applicationContext as AmgHudApplication
+        app.updateBLEState(bleViewModel.state.value)
     }
+
+    override fun onStop() {
+        super.onStop()
+        serviceConnection.unbindService()
+    }
+
 }

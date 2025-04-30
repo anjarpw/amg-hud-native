@@ -28,8 +28,8 @@ class BLEBroadcastReceiverForViewModel(private val bleViewModel: BLEViewModel) :
                 if (plainMessage != null) {
                     val (key, value) = splitString(plainMessage)
                     if (key != null && value != null) {
-                        bleViewModel.processIntent(
-                            BLEIntent.UpdateMessage(
+                        bleViewModel.onAction(
+                            BLEViewModelActions.UpdateMessage(
                                 key.trim(),
                                 value.trim()
                             )
@@ -41,10 +41,17 @@ class BLEBroadcastReceiverForViewModel(private val bleViewModel: BLEViewModel) :
 
             BLEConstants.SETUP_STATUS_CHANGED -> {
                 val status = intent.getEnumExtra<BLESetupStatus>("STATUS")
+                val isDemo = intent.getBooleanExtra("IS_DEMO", false)
                 if (status != null) {
-                    bleViewModel.processIntent(BLEIntent.UpdateSetupStatus(status, hashMapOf()))
+                    bleViewModel.onAction(BLEViewModelActions.UpdateSetupStatus(status, isDemo))
                 }
             }
+
+            BLEConstants.BLE_ALIVE -> {
+                val isAlive = intent.getBooleanExtra("IS_ALIVE", false)
+                bleViewModel.onAction(BLEViewModelActions.UpdateBLEAlive(isAlive))
+            }
+
         }
     }
 }

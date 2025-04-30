@@ -98,6 +98,7 @@ class MiscView(context: Context, attrs: AttributeSet?) : BaseView(context, attrs
         })
         drawBrakeIndicator(canvas)
         drawPowerIndicator(canvas)
+        drawBLEIndicator(canvas)
         foregroundScalesCanvasManager.applyToCanvas(canvas, 0, 0, width, height)
     }
 
@@ -105,10 +106,12 @@ class MiscView(context: Context, attrs: AttributeSet?) : BaseView(context, attrs
     val iconRect = Rect(-48, -96, 48, 0)
     private var brakeBitmap: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.brake)
     private var powerBitmap: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.power)
+    private var bleBitmap: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.ble)
 
 
     private var isBrakeOn = false
     private var isPowerOn = false
+    private var isBLEAlive = false
     fun setBrakeIndicator(isOn: Boolean) {
         isBrakeOn = isOn
         invalidate()
@@ -118,12 +121,16 @@ class MiscView(context: Context, attrs: AttributeSet?) : BaseView(context, attrs
         isPowerOn = isOn
         invalidate()
     }
+    fun setBLEDeviceAlive(isOn: Boolean) {
+        isBLEAlive = isOn
+        invalidate()
+    }
 
     private fun drawBrakeIndicator(canvas: Canvas) {
         bitmapPaint.style = Paint.Style.FILL
         bitmapPaint.color = if (isBrakeOn) Color.WHITE else Color.parseColor("#22000000")
         canvas.save()
-        canvas.translate(width * 0.5f - 60f, height - 50f)
+        canvas.translate(width * 0.5f - 120f, height - 50f)
         canvas.drawBitmap(
             brakeBitmap,
             Rect(0, 0, brakeBitmap.width, brakeBitmap.height),
@@ -137,7 +144,7 @@ class MiscView(context: Context, attrs: AttributeSet?) : BaseView(context, attrs
         bitmapPaint.style = Paint.Style.FILL
         bitmapPaint.color = if (isPowerOn) Color.WHITE else Color.parseColor("#22000000")
         canvas.save()
-        canvas.translate(width * 0.5f + 60f, height - 50f)
+        canvas.translate(width * 0.5f + 120, height - 50f)
         canvas.drawBitmap(
             powerBitmap,
             Rect(0, 0, powerBitmap.width, powerBitmap.height),
@@ -145,7 +152,21 @@ class MiscView(context: Context, attrs: AttributeSet?) : BaseView(context, attrs
             bitmapPaint
         )
         canvas.restore()
-
     }
+
+    private fun drawBLEIndicator(canvas: Canvas) {
+        bitmapPaint.style = Paint.Style.FILL
+        bitmapPaint.color = if (isBLEAlive) Color.WHITE else Color.parseColor("#22000000")
+        canvas.save()
+        canvas.translate(width * 0.5f, height - 50f)
+        canvas.drawBitmap(
+            bleBitmap,
+            Rect(0, 0, bleBitmap.width, bleBitmap.height),
+            iconRect,
+            bitmapPaint
+        )
+        canvas.restore()
+    }
+
 
 }

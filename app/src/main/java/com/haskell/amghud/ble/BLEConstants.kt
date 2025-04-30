@@ -19,23 +19,18 @@ inline fun <reified T : Enum<T>> Intent.getEnumExtra(key: String): T? {
 }
 
 object BLEConstants {
+    const val BLE_ALIVE = "BLE_ALIVE"
     const val MESSAGE_RECEIVED = "MESSAGE_RECEIVED"
     const val SETUP_STATUS_CHANGED = "SETUP_STATUS_CHANGED"
 }
 
-enum class BLESetupStatus {
-    NO_PAIR,
-    SCANNED,
-    CONNECTED,
+enum class BLESetupStatus(label: String) {
+    UNPAIRED("Unpaired"),
+    SCANNING("Scanning"),
+    DEVICE_FOUND("Device Found"),
+    CONNECTING("Connecting"),
+    CONNECTED("Device Connected"),
 
-    SERVICE_DISCOVERED,
-    SCAN_STOPPED,
-    CONNECTION_FAILED,
-    DISCONNECTED,
-    SCANNED_AND_FOUND,
-    SCAN_FAILED,
-    NO_DEVICE,
-    SCANNING,
-    CONNECTING
 }
+
 
