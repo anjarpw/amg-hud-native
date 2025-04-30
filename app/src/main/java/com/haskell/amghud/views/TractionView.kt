@@ -151,10 +151,10 @@ class TractionView(context: Context, attrs: AttributeSet?) : BaseView(context, a
             0f, scalingSize,
             0f, -scalingSize,
             intArrayOf(
-                Color.parseColor("#00FFFFFF"),
-                Color.parseColor("#22FFFFFF"),
-                Color.parseColor("#22FFFFFF"),
-                Color.parseColor("#00FFFFFF"),
+                Color.parseColor("#000088FF"),
+                Color.parseColor("#220088FF"),
+                Color.parseColor("#220088FF"),
+                Color.parseColor("#000088FF"),
             ),
             floatArrayOf(0f, 0.2f, 0.9f, 1.0f),
             Shader.TileMode.CLAMP
@@ -218,21 +218,21 @@ class TractionView(context: Context, attrs: AttributeSet?) : BaseView(context, a
         canvas.drawRect(0f, value * scalingSize, -width * thickness2, 0f, fillPaint)
     }
 
-    private fun drawBackgroundScale(canvas: Canvas) {
+    private fun drawForegroundScale(canvas: Canvas) {
         strokePaint.strokeWidth = 2f
-        fillPaint.shader = blackShader(-width * thickness2)
-        canvas.drawRect(0f, -scalingSize, -width * thickness2, scalingSize, fillPaint)
 
         fun drawScaledLine(y: Float, scaleWidth: Float) {
             canvas.drawLine(0f, y * scalingSize, -width * scaleWidth, y * scalingSize, strokePaint)
         }
+        fillPaint.shader = blackShader(-width * thickness2)
+        canvas.drawRect(0f, -scalingSize, -width * thickness2, scalingSize, fillPaint)
 
-        strokePaint.color = Color.parseColor("#22FFFFFF")
+        strokePaint.color = Color.parseColor("#220088FF")
         for (i in 0..10) { // i will take values 1, 2, 3, 4, 5
             drawScaledLine(-1f + 0.2f * i, thickness1 * 0.5f)
         }
-        strokePaint.color = Color.parseColor("#44FFFFFF")
         canvas.drawLine(0f, scalingSize, 0f, -scalingSize, strokePaint)
+        strokePaint.color = Color.parseColor("#440088FF")
         drawScaledLine(0f, thickness1)
         drawScaledLine(-1f, thickness1)
         drawScaledLine(1f, thickness1)
@@ -243,11 +243,12 @@ class TractionView(context: Context, attrs: AttributeSet?) : BaseView(context, a
     private fun drawForegroundScales(canvas: Canvas) {
         val shift = 0.20f * grandProportion
         canvas.scale(1f, -width * 0.25f / scalingSize)
+
         canvas.translate(width * shift, 0f)
-        drawBackgroundScale(canvas)
+        drawForegroundScale(canvas)
         canvas.scale(-1f, 1f)
         canvas.translate(width * 2 * shift, 0f)
-        drawBackgroundScale(canvas)
+        drawForegroundScale(canvas)
     }
 
     private fun drawPowerDistribution(canvas: Canvas) {

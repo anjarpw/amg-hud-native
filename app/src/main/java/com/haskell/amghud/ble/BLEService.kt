@@ -1,6 +1,7 @@
 package com.haskell.amghud.ble
 
 
+import android.R.attr.value
 import android.annotation.SuppressLint
 import android.app.Service
 import android.bluetooth.*
@@ -14,7 +15,6 @@ import android.os.Binder
 import android.os.IBinder
 import android.util.Log
 import com.haskell.amghud.ILocalBinder
-
 import kotlinx.coroutines.*
 import java.util.*
 import java.util.concurrent.Executors
@@ -25,6 +25,7 @@ interface BLEServiceInterface {
     fun connectToDevice()
     fun disconnectDevice()
     fun reset()
+    fun runDemo()
 }
 
 private const val TAG = "BLEService"
@@ -37,10 +38,10 @@ private val DESCRIPTOR_UUID =
 
 class BLEService : Service(), BLEServiceInterface {
 
-
     private val bluetoothAdapter: BluetoothAdapter? by lazy {
         (getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager).adapter
     }
+    var isDemoing = false
     private val bluetoothLeScanner: BluetoothLeScanner? by lazy { bluetoothAdapter?.bluetoothLeScanner }
     private var bluetoothGatt: BluetoothGatt? = null
     private var targetDevice: BluetoothDevice? = null
@@ -48,6 +49,8 @@ class BLEService : Service(), BLEServiceInterface {
     private val scanPeriod: Long = 10000
     private val scope = CoroutineScope(Dispatchers.IO)
     private val executorService = Executors.newSingleThreadExecutor()
+    private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private var bleCharacteristic: BluetoothGattCharacteristic? = null
 
     private val binder = LocalBinder()
 
@@ -58,6 +61,20 @@ class BLEService : Service(), BLEServiceInterface {
     override fun onBind(intent: Intent): IBinder {
         return binder
     }
+
+    @SuppressLint("MissingPermission")
+    private fun writeMessage(value: String) {
+        bleCharacteristic!!.setValue(value)
+        val success = bluetoothGatt!!.writeCharacteristic(bleCharacteristic!!)
+        if (success) {
+            Log.i(TAG, "Message sent successfully.")
+            // You might receive a confirmation in the onCharacteristicWrite callback
+        } else {
+            Log.e(TAG, "Failed to send message.")
+        }
+
+    }
+
 
     private val leScanCallback = object : ScanCallback() {
         @SuppressLint("MissingPermission")
@@ -88,6 +105,7 @@ class BLEService : Service(), BLEServiceInterface {
         }
     }
 
+
     private val gattCallback = object : BluetoothGattCallback() {
         @SuppressLint("MissingPermission")
         override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
@@ -113,10 +131,10 @@ class BLEService : Service(), BLEServiceInterface {
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 Log.i(TAG, "Services discovered.")
                 val service = gatt.getService(SERVICE_UUID)
-                val characteristic = service?.getCharacteristic(CHARACTERISTIC_UUID)
-                if (characteristic != null) {
-                    gatt.setCharacteristicNotification(characteristic, true)
-                    val descriptor = characteristic.getDescriptor(DESCRIPTOR_UUID)
+                bleCharacteristic = service?.getCharacteristic(CHARACTERISTIC_UUID)
+                if (bleCharacteristic != null) {
+                    gatt.setCharacteristicNotification(bleCharacteristic, true)
+                    val descriptor = bleCharacteristic!!.getDescriptor(DESCRIPTOR_UUID)
                     descriptor?.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
                     gatt.writeDescriptor(descriptor)
                 }
@@ -157,10 +175,52 @@ class BLEService : Service(), BLEServiceInterface {
         return START_REDELIVER_INTENT
     }
 
+    override fun runDemo() {
+        isDemoing = true
+        sendBroadcast(
+            Intent(BLEConstants.SETUP_STATUS_CHANGED)
+                .putEnumExtra("STATUS", BLESetupStatus.DEMO)
+        )
+
+    }
+
+    override fun onCreate() {
+        super.onCreate()
+        isRunning = true
+        val randomV: Int = (Math.random() * 500).toInt()
+        Log.i("Service is created", randomV.toString())
+        val context = this
+        val fakeState = FakeState(0, 0)
+        serviceScope.launch {
+            while (true) {
+                if (isDemoing) {
+                    Log.i("COROUTINES", randomV.toString())
+                    broadcastFakeCumulatedPowerMessages(context, fakeState)
+                }
+                delay(500) // 500 millisecondss
+            }
+        }
+        serviceScope.launch {
+            while (true) {
+                if (isDemoing) {
+                    broadcastModeChanges(context, fakeState)
+                }
+                delay(5000) // 500 milliseconds
+            }
+        }
+        serviceScope.launch {
+            while (true) {
+                if (bluetoothGatt != null && bleCharacteristic != null) {
+                    writeMessage("HELLO")
+                }
+                delay(2000) // 500 millisecondss
+            }
+        }
+    }
 
     @SuppressLint("MissingPermission")
     override fun startScanAndConnect() {
-
+        isDemoing = false
         if (bluetoothLeScanner == null) {
             Log.e("BLE", "BluetoothLeScanner is null! Is Bluetooth enabled?")
             return
@@ -199,14 +259,11 @@ class BLEService : Service(), BLEServiceInterface {
             Intent(BLEConstants.SETUP_STATUS_CHANGED)
                 .putEnumExtra("STATUS", BLESetupStatus.SCAN_STOPPED)
         )
-        sendBroadcast(
-            Intent(BLEConstants.SETUP_STATUS_CHANGED)
-                .putEnumExtra("STATUS", BLESetupStatus.SCAN_STOPPED)
-        )
     }
 
     @SuppressLint("MissingPermission")
     override fun connectToDevice() {
+        isDemoing = false
         if (targetDevice == null) {
             bluetoothGatt = null
             Log.w(TAG, "Target device not found.")
@@ -217,6 +274,7 @@ class BLEService : Service(), BLEServiceInterface {
 
     @SuppressLint("MissingPermission")
     override fun disconnectDevice() {
+        isDemoing = false
         if (bluetoothGatt != null) {
             bluetoothGatt?.disconnect()
             bluetoothGatt?.close()
@@ -225,16 +283,23 @@ class BLEService : Service(), BLEServiceInterface {
     }
 
     override fun onDestroy() {
+        isDemoing = false
         super.onDestroy()
         stopScan()
         disconnectDevice()
         executorService.shutdown()
+        FakeBLEService.isRunning = false
+
     }
 
     override fun reset() {
+        isDemoing = false
         stopScan()
         disconnectDevice()
-        startScanAndConnect()
     }
 
+
+    companion object {
+        var isRunning: Boolean = false
+    }
 }

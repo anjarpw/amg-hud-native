@@ -7,22 +7,19 @@ import android.content.Intent
 import android.content.ServiceConnection
 import android.os.Binder
 import android.os.IBinder
+import com.haskell.amghud.ble.BLEService
 
 
 @Suppress("UNCHECKED_CAST")
 class GenericServiceConnection<T : Service?>(
     private val context: Context,
     private val serviceClass: Class<T>,
-    private val listener: ServiceConnectionListener<T?>
+    private val _onServiceConnected: (T) -> Unit,
+    private val _onServiceDisconnected: () -> Unit
 ) :
     ServiceConnection {
     private var service: T? = null
     private var isBound: Boolean = false
-
-    interface ServiceConnectionListener<T> {
-        fun onServiceConnected(service: T)
-        fun onServiceDisconnected()
-    }
 
     fun bindService() {
         if (!isBound) {
@@ -36,7 +33,7 @@ class GenericServiceConnection<T : Service?>(
             context.unbindService(this)
             isBound = false
             service = null
-            listener.onServiceDisconnected()
+            _onServiceDisconnected()
         }
     }
 
@@ -44,13 +41,13 @@ class GenericServiceConnection<T : Service?>(
         if (binder is Binder) {
             service = (binder as ILocalBinder<*>).getService() as T
             isBound = true
-            listener.onServiceConnected(service)
+            _onServiceConnected(service!!)
         }
     }
 
     override fun onServiceDisconnected(name: ComponentName) {
         isBound = false
         service = null
-        listener.onServiceDisconnected()
+        _onServiceDisconnected()
     }
 }

@@ -92,6 +92,7 @@ abstract class BaseView(context: Context, var attrs: AttributeSet?) : View(conte
             doResize(resources.displayMetrics.widthPixels, resources.displayMetrics.heightPixels)
         // Set the measured dimensions to be a square
         setMeasuredDimension(revisedSize.width, revisedSize.height)
+        visibility = if(getVisibilityBasedOnOrientation(resources, orientationVisibility)) View.VISIBLE else View.GONE
     }
 
     protected open fun doResize(width: Int, height: Int): Size {
@@ -153,9 +154,10 @@ class CanvasManager(
         }
     }
 
-    fun applyToCanvas(c: Canvas, left: Int, top: Int, right: Int, bottom: Int) {
+
+    fun applyToCanvas(c: Canvas, left: Int, top: Int, right: Int, bottom: Int, paint: Paint = Paint()) {
         tryUpdate()
         targetRect.set(left, top, right, bottom)
-        c.drawBitmap(bitmap, sourceRect, targetRect, Paint())
+        c.drawBitmap(bitmap, sourceRect, targetRect, paint)
     }
 }

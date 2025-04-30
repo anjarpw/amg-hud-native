@@ -27,7 +27,7 @@ enum class BLESetupStatus {
     NO_PAIR,
     SCANNED,
     CONNECTED,
-
+    DEMO,
     SERVICE_DISCOVERED,
     SCAN_STOPPED,
     CONNECTION_FAILED,

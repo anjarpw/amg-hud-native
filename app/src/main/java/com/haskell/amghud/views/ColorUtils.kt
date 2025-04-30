@@ -3,13 +3,20 @@ package com.haskell.amghud.views
 import android.graphics.Color
 
 val DarkShade = Color.parseColor("#FF335599")
-val BlueShadeHigh = Color.parseColor("#AA00AEFF")
-val BlueShadeLow = Color.parseColor("#44001E80")
+val BlueShadeHigh = Color.parseColor("#AA0088FF")
+val BlueShadeLow = Color.parseColor("#44000E2F")
 val RedShadeHigh = Color.parseColor("#AAFF0000")
 val RedShadeLow = Color.parseColor("#44880000")
 val PurpleShadeHigh = Color.parseColor("#AA8F17FF")
 val PurpleShadeLow = Color.parseColor("#4447008A")
 
+fun setColorAlpha(existingColor: Int, alpha: Int): Int {
+    val red = Color.red(existingColor)
+    val green = Color.green(existingColor)
+    val blue = Color.blue(existingColor)
+
+    return Color.argb(alpha, red, green, blue)
+}
 fun mixColors(color1: Int, color2: Int, ratio1: Float = 0.6f): Int {
     require(ratio1 in 0f..1f) { "Ratio 1 must be between 0 and 1" }
     val ratio2 = 1f - ratio1
